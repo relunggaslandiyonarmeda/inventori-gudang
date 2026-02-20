@@ -3,6 +3,13 @@
 @section('title', 'Laporan Transaksi Gabungan')
 
 @section('content')
+<!-- Back Button -->
+<div class="mb-4">
+    <a href="{{ route('laporan.index') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+        <i class="fas fa-arrow-left mr-2"></i> Kembali ke Laporan
+    </a>
+</div>
+
 <div class="text-center mb-4 sm:mb-6">
     <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Laporan Transaksi Gabungan</h1>
     <p class="text-gray-600 text-sm sm:text-base">{{ \Carbon\Carbon::createFromFormat('m', $bulan)->format('F') }} {{ $tahun }}</p>
