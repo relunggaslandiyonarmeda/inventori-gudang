@@ -1,0 +1,33 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class MasterBarang extends Model
+{
+    use HasFactory;
+
+    protected $table = 'master_barang';
+    protected $primaryKey = 'barcode';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'barcode',
+        'nama_barang',
+        'stok',
+        'lokasi_rak',
+    ];
+
+    public function barangMasuk()
+    {
+        return $this->hasMany(BarangMasuk::class, 'barcode', 'barcode');
+    }
+
+    public function barangKeluar()
+    {
+        return $this->hasMany(BarangKeluar::class, 'barcode', 'barcode');
+    }
+}
