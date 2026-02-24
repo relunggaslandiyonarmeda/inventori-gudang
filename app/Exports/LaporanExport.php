@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\BarangMasuk;
 use App\Models\BarangKeluar;
+use App\Models\MasterBarang;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 
@@ -56,6 +57,28 @@ class LaporanExport implements FromCollection, WithHeadings
                     ];
                 });
             return $data;
+        } elseif ($this->jenis === 'rak') {
+            // Laporan per rak
+            $rak = $this->bulan; // Using bulan parameter for rak value
+            
+            $query = MasterBarang::orderBy('lokasi_rak', 'asc')
+                ->orderBy('nama_barang', 'asc');
+            
+            if ($rak !== 'all') {
+                $query->where('lokasi_rak', $rak);
+            }
+            
+            $data = $query->get()->map(function ($item, $index) {
+                return [
+                    'No' => $index + 1,
+                    'Rak' => 'Rak ' . $item->lokasi_rak,
+                    'Barcode' => $item->barcode,
+                    'Nama Barang' => $item->nama_barang,
+                    'Stok' => $item->stok,
+                    'Status' => $item->stok > 10 ? 'Tersedia' : ($item->stok > 0 ? 'Terbatas' : 'Habis'),
+                ];
+            });
+            return $data;
         } else {
             // Gabungan
             $masuks = BarangMasuk::with('masterBarang')
@@ -98,6 +121,8 @@ class LaporanExport implements FromCollection, WithHeadings
     {
         if ($this->jenis === 'gabungan') {
             return ['Tanggal', 'Jenis', 'Barcode', 'Nama Barang', 'Jumlah', 'Keterangan'];
+        } elseif ($this->jenis === 'rak') {
+            return ['No', 'Rak', 'Barcode', 'Nama Barang', 'Stok', 'Status'];
         }
         return ['No', 'Tanggal', 'Barcode', 'Nama Barang', 'Jumlah', 'Keterangan'];
     }

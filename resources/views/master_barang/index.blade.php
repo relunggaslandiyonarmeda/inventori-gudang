@@ -3,248 +3,331 @@
 @section('title', 'Master Barang')
 
 @section('content')
-<!-- Back Button -->
-<div class="mb-4">
-    <a href="{{ route('dashboard') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
-        <i class="fas fa-arrow-left mr-2"></i> Kembali ke Dashboard
-    </a>
-</div>
-
-<div class="text-center mb-4 sm:mb-6">
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Master Barang</h1>
-    <p class="text-gray-600 text-sm sm:text-base">Kelola data barang dengan scan barcode</p>
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Master Barang</li>
+                </ol>
+            </nav>
+            <h1 class="page-title">Master Barang</h1>
+            <p class="page-subtitle">Kelola data barang dengan scan barcode</p>
+        </div>
+    </div>
 </div>
 
 @if(Session::has('success'))
-<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-2"></i>
     {{ Session::get('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+@endif
+
+@if(Session::has('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-circle me-2"></i>
+    {{ Session::get('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
 
 <!-- Tabs -->
-<div class="mb-4">
-    <div class="flex border-b overflow-x-auto">
-        <button onclick="showTab('scan')" id="tab-scan" class="px-3 sm:px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-semibold whitespace-nowrap text-sm sm:text-base">
-            <i class="fas fa-camera"></i> <span class="hidden sm:inline">Scan Barcode</span>
+<ul class="nav nav-tabs mb-4" id="masterBarangTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="scan-tab-btn" data-bs-toggle="tab" data-bs-target="#scan" type="button">
+            <i class="bi bi-camera me-2"></i>Scan Barcode
         </button>
-        <button onclick="showTab('list')" id="tab-list" class="px-3 sm:px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
-            <i class="fas fa-list"></i> <span class="hidden sm:inline">Daftar Barang</span>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="list-tab-btn" data-bs-toggle="tab" data-bs-target="#list" type="button">
+            <i class="bi bi-list-ul me-2"></i>Daftar Barang
         </button>
-    </div>
-</div>
+    </li>
+</ul>
 
-<!-- Scan Tab -->
-<div id="scan-tab" class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-    <h2 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Tambah Barang Baru (Scan Barcode)</h2>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <!-- Scanner -->
-        <div>
-            <div class="scanner-container mb-3 sm:mb-4" id="scanner-container">
-                <div id="interactive" class="viewport"></div>
+<!-- Tab Content -->
+<div class="tab-content" id="masterBarangTabContent">
+    <!-- Scan Tab -->
+    <div class="tab-pane fade show active" id="scan">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle text-primary me-2"></i>
+                    Tambah Barang Baru
+                </h5>
             </div>
-            <button onclick="startScanner()" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded mb-2">
-                <i class="fas fa-play"></i> Mulai Scanner
-            </button>
-            <button onclick="stopScanner()" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded">
-                <i class="fas fa-stop"></i> Stop Scanner
-            </button>
-            <p class="text-xs sm:text-sm text-gray-500 mt-2 text-center">Arahkan kamera ke barcode</p>
-        </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <!-- Scanner -->
+                    <div class="col-lg-6">
+                        <div class="scanner-container mb-3" id="scanner-container">
+                            <div id="interactive" class="viewport"></div>
+                            <div class="scanner-overlay"></div>
+                            <div class="scanner-hint">
+                                <i class="bi bi-camera-video me-1"></i>
+                                Arahkan kamera ke barcode
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button onclick="startScanner()" class="btn btn-primary">
+                                <i class="bi bi-play-fill me-2"></i>Mulai Scanner
+                            </button>
+                            <button onclick="stopScanner()" class="btn btn-outline-danger">
+                                <i class="bi bi-stop-fill me-2"></i>Stop Scanner
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- Form -->
-        <div>
-            <form action="{{ route('master.barang.store') }}" method="POST" id="barang-form">
-                @csrf
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Barcode</label>
-                    <div class="flex gap-2">
-                        <input type="text" name="barcode" id="barcode-input" required
-                            class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-mobile"
-                            placeholder="Scan atau ketik barcode">
-                        <button type="button" onclick="generateBarcode()" 
-                            class="bg-purple-500 hover:bg-purple-600 text-white px-3 sm:px-4 py-2 rounded whitespace-nowrap">
-                            <i class="fas fa-barcode"></i> Generate
-                        </button>
+                    <!-- Form -->
+                    <div class="col-lg-6">
+                        <form action="{{ route('master.barang.store') }}" method="POST" id="barang-form">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-upc text-primary me-1"></i>
+                                    Barcode
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                                    <input type="text" name="barcode" id="barcode-input" class="form-control" required placeholder="Scan atau ketik barcode">
+                                    <button type="button" onclick="generateBarcode()" class="btn btn-warning">
+                                        <i class="bi bi-shuffle me-1"></i>Generate
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-box text-primary me-1"></i>
+                                    Nama Barang
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-box-seam"></i></span>
+                                    <input type="text" name="nama_barang" class="form-control" required placeholder="Masukkan nama barang">
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-123 text-primary me-1"></i>
+                                        Stok Awal
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-archive"></i></span>
+                                        <input type="number" name="stok" value="0" min="0" class="form-control" required placeholder="0">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-grid text-primary me-1"></i>
+                                        Lokasi Rak
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                        <select name="lokasi_rak" class="form-select" required>
+                                            <option value="">Pilih Rak</option>
+                                            <option value="A">Rak A</option>
+                                            <option value="B">Rak B</option>
+                                            <option value="C">Rak C</option>
+                                            <option value="D">Rak D</option>
+                                            <option value="E">Rak E</option>
+                                            <option value="F">Rak F</option>
+                                            <option value="G">Rak G</option>
+                                            <option value="H">Rak H</option>
+                                            <option value="O">Rak O</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-save me-2"></i>Simpan Barang
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Nama Barang</label>
-                    <input type="text" name="nama_barang" required
-                        class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-mobile"
-                        placeholder="Masukkan nama barang">
-                </div>
-
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Stok Awal</label>
-                    <input type="number" name="stok" value="0" min="0" required
-                        class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-mobile"
-                        placeholder="Masukkan stok awal">
-                </div>
-
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Lokasi Rak</label>
-                    <select name="lokasi_rak" required
-                        class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Pilih Lokasi Rak</option>
-                        <option value="A">Rak A</option>
-                        <option value="B">Rak B</option>
-                        <option value="C">Rak C</option>
-                        <option value="D">Rak D</option>
-                        <option value="E">Rak E</option>
-                        <option value="F">Rak F</option>
-                        <option value="G">Rak G</option>
-                        <option value="H">Rak H</option>
-                        <option value="O">Rak O (Outdoor)</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                    <i class="fas fa-save"></i> Simpan Barang
-                </button>
-            </form>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- List Tab -->
-<div id="list-tab" class="hidden">
-    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4">
-            <h2 class="text-lg sm:text-xl font-bold">Daftar Semua Barang</h2>
-            <input type="text" id="search-table" placeholder="Cari..." 
-                class="w-full sm:w-auto px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-        </div>
-
-        <div class="overflow-x-auto">
-            <table class="w-full table-auto text-sm" id="barang-table">
-                <thead>
-                    <tr class="bg-gray-100">
-                        <th class="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Barcode</th>
-                        <th class="px-2 sm:px-4 py-2 text-left text-xs sm:text-sm">Nama Barang</th>
-                        <th class="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm">Stok</th>
-                        <th class="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm">Rak</th>
-                        <th class="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($barangs as $barang)
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="px-2 sm:px-4 py-2 font-mono text-xs sm:text-sm">{{ $barang->barcode }}</td>
-                        <td class="px-2 sm:px-4 py-2 text-xs sm:text-sm">{{ $barang->nama_barang }}</td>
-                        <td class="px-2 sm:px-4 py-2 text-center">
-                            <span class="px-2 py-1 rounded text-xs sm:text-sm {{ $barang->stok > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">
-                                {{ $barang->stok }}
-                            </span>
-                        </td>
-                        <td class="px-2 sm:px-4 py-2 text-center text-xs sm:text-sm">Rak {{ $barang->lokasi_rak }}</td>
-                        <td class="px-2 sm:px-4 py-2 text-center">
-                            <button onclick="printBarcode('{{ $barang->barcode }}', '{{ $barang->nama_barang }}')"
-                                class="bg-purple-500 hover:bg-purple-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm mb-1 sm:mb-0">
-                                <i class="fas fa-barcode"></i>
-                            </button>
-                            <button onclick="editBarang('{{ $barang->barcode }}', '{{ $barang->nama_barang }}', {{ $barang->stok }}, '{{ $barang->lokasi_rak }}')"
-                                class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm mb-1 sm:mb-0">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <form action="{{ route('master.barang.destroy', $barang->barcode) }}" method="POST" class="inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-3 py-1 rounded text-xs sm:text-sm"
-                                    onclick="return confirm('Yakin hapus barang ini?')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-gray-500">
-                            <i class="fas fa-box-open text-4xl mb-2"></i>
-                            <p>Belum ada barang</p>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+    <!-- List Tab -->
+    <div class="tab-pane fade" id="list">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <h5 class="mb-0">
+                    <i class="bi bi-box-seam text-primary me-2"></i>
+                    Daftar Semua Barang
+                </h5>
+                <div class="d-flex gap-2">
+                    <div class="input-group input-group-sm" style="width: 200px;">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="search-table" placeholder="Cari barang..." class="form-control">
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="barang-table">
+                        <thead>
+                            <tr>
+                                <th><i class="bi bi-upc me-1"></i>Barcode</th>
+                                <th><i class="bi bi-box me-1"></i>Nama Barang</th>
+                                <th class="text-center"><i class="bi bi-archive me-1"></i>Stok</th>
+                                <th class="text-center"><i class="bi bi-geo-alt me-1"></i>Rak</th>
+                                <th class="text-center"><i class="bi bi-gear me-1"></i>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($barangs as $barang)
+                            <tr>
+                                <td>
+                                    <code class="bg-light px-2 py-1 rounded">{{ $barang->barcode }}</code>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">{{ $barang->nama_barang }}</span>
+                                </td>
+                                <td class="text-center">
+                                    @if($barang->stok > 10)
+                                        <span class="badge bg-success-subtle text-success px-3 py-2">
+                                            <i class="bi bi-check-circle me-1"></i>{{ $barang->stok }}
+                                        </span>
+                                    @elseif($barang->stok > 0)
+                                        <span class="badge bg-warning-subtle text-warning px-3 py-2">
+                                            <i class="bi bi-exclamation-circle me-1"></i>{{ $barang->stok }}
+                                        </span>
+                                    @else
+                                        <span class="badge bg-danger-subtle text-danger px-3 py-2">
+                                            <i class="bi bi-x-circle me-1"></i>Habis
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-primary-subtle text-primary">{{ $barang->lokasi_rak }}</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group btn-group-sm">
+                                        <button onclick="printBarcode('{{ $barang->barcode }}', '{{ $barang->nama_barang }}')"
+                                            class="btn btn-outline-secondary" title="Cetak Barcode">
+                                            <i class="bi bi-printer"></i>
+                                        </button>
+                                        <button onclick="editBarang('{{ $barang->barcode }}', '{{ $barang->nama_barang }}', {{ $barang->stok }}, '{{ $barang->lokasi_rak }}')"
+                                            class="btn btn-outline-warning" title="Edit">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                        <form action="{{ route('master.barang.destroy', $barang->barcode) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-outline-danger" title="Hapus"
+                                                onclick="return confirm('Yakin hapus barang ini?')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="5" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                        <h5>Belum ada barang</h5>
+                                        <p class="mb-0">Klik tab "Scan Barcode" untuk menambah barang baru</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Edit Modal -->
-<div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-        <h2 class="text-xl font-bold mb-4">Edit Barang</h2>
-        <form id="edit-form" method="POST">
-            @csrf
-            @method('PUT')
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Barcode</label>
-                <input type="text" id="edit-barcode" disabled
-                    class="w-full px-4 py-2 border rounded-lg bg-gray-100">
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square text-warning me-2"></i>
+                    Edit Barang
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Nama Barang</label>
-                <input type="text" name="nama_barang" id="edit-nama" required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Stok</label>
-                <input type="number" name="stok" id="edit-stok" min="0" required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Lokasi Rak</label>
-                <select name="lokasi_rak" id="edit-rak" required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option value="A">Rak A</option>
-                    <option value="B">Rak B</option>
-                    <option value="C">Rak C</option>
-                    <option value="D">Rak D</option>
-                    <option value="E">Rak E</option>
-                    <option value="F">Rak F</option>
-                    <option value="G">Rak G</option>
-                    <option value="H">Rak H</option>
-                    <option value="O">Rak O</option>
-                </select>
-            </div>
-            <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">
-                    Simpan
-                </button>
-                <button type="button" onclick="closeModal()" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded">
-                    Batal
-                </button>
-            </div>
-        </form>
+            <form id="edit-form" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Barcode</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" id="edit-barcode" class="form-control" disabled>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nama Barang</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-box-seam"></i></span>
+                            <input type="text" name="nama_barang" id="edit-nama" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Stok</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-archive"></i></span>
+                            <input type="number" name="stok" id="edit-stok" min="0" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Lokasi Rak</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                            <select name="lokasi_rak" id="edit-rak" class="form-select" required>
+                                <option value="A">Rak A</option>
+                                <option value="B">Rak B</option>
+                                <option value="C">Rak C</option>
+                                <option value="D">Rak D</option>
+                                <option value="E">Rak E</option>
+                                <option value="F">Rak F</option>
+                                <option value="G">Rak G</option>
+                                <option value="H">Rak H</option>
+                                <option value="O">Rak O</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-save me-1"></i>Simpan Perubahan
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+
 @endsection
 
 @section('scripts')
 <script>
 let scannerActive = false;
+let editModal = null;
 
-function showTab(tab) {
-    if (tab === 'scan') {
-        document.getElementById('scan-tab').classList.remove('hidden');
-        document.getElementById('list-tab').classList.add('hidden');
-        document.getElementById('tab-scan').classList.add('border-blue-500', 'text-blue-600');
-        document.getElementById('tab-scan').classList.remove('border-transparent', 'text-gray-500');
-        document.getElementById('tab-list').classList.add('border-transparent', 'text-gray-500');
-        document.getElementById('tab-list').classList.remove('border-blue-500', 'text-blue-600');
-    } else {
-        document.getElementById('scan-tab').classList.add('hidden');
-        document.getElementById('list-tab').classList.remove('hidden');
-        document.getElementById('tab-list').classList.add('border-blue-500', 'text-blue-600');
-        document.getElementById('tab-list').classList.remove('border-transparent', 'text-gray-500');
-        document.getElementById('tab-scan').classList.add('border-transparent', 'text-gray-500');
-        document.getElementById('tab-scan').classList.remove('border-blue-500', 'text-blue-600');
-    }
-}
+document.addEventListener('DOMContentLoaded', function() {
+    editModal = new bootstrap.Modal(document.getElementById('editModal'));
+});
 
-// Generate random barcode
 function generateBarcode() {
     const timestamp = Date.now().toString();
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
@@ -260,7 +343,7 @@ function printBarcode(barcode, namaBarang) {
         <html>
         <head>
             <title>Cetak Barcode - ${barcode}</title>
-            <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
+            <script src="{{ asset('assets/js/JsBarcode.all.min.js') }}"><\/script>
             <style>
                 @page { size: 50mm 20mm; margin: 0; }
                 @media print { body { margin: 0; padding: 0; } .no-print { display: none !important; } }
@@ -272,13 +355,13 @@ function printBarcode(barcode, namaBarang) {
                 .barcode-svg { width: 28mm; height: 14mm; }
                 .no-print { position: fixed; top: 10px; left: 10px; z-index: 9999; }
                 .no-print button { padding: 6px 12px; margin: 3px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
-                .btn-print { background: #2563eb; color: white; }
-                .btn-close { background: #6b7280; color: white; }
+                .btn-print { background: #4f46e5; color: white; }
+                .btn-close { background: #6c757d; color: white; }
             </style>
         </head>
         <body>
             <div class="no-print">
-                <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
+                <button class="btn-print" onclick="window.print()">🖨️ Cetak</button>
                 <button class="btn-close" onclick="window.close()">Tutup</button>
             </div>
             <div class="barcode-container">
@@ -298,7 +381,6 @@ function printBarcode(barcode, namaBarang) {
 function startScanner() {
     if (scannerActive) return;
     
-    // Remove previous event listener to prevent duplicates
     Quagga.offDetected();
     
     Quagga.init({
@@ -328,18 +410,15 @@ function startScanner() {
             return;
         }
         
-        // Register detection handler BEFORE starting
         Quagga.onDetected(function(result) {
             if (result.codeResult && result.codeResult.code) {
                 const code = result.codeResult.code;
                 document.getElementById('barcode-input').value = code;
                 document.getElementById('barcode-input').focus();
                 
-                // Play beep sound
                 let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPIHzn7uypYyEPHn7o7eqoZCEPJH/m7eqnYyAO');
                 audio.play().catch(() => {});
                 
-                // Auto-close camera after successful scan
                 stopScanner();
             }
         });
@@ -361,11 +440,7 @@ function editBarang(barcode, nama, stok, rak) {
     document.getElementById('edit-stok').value = stok;
     document.getElementById('edit-rak').value = rak;
     document.getElementById('edit-form').action = '/master-barang/' + barcode;
-    document.getElementById('edit-modal').classList.remove('hidden');
-}
-
-function closeModal() {
-    document.getElementById('edit-modal').classList.add('hidden');
+    editModal.show();
 }
 
 // Search table

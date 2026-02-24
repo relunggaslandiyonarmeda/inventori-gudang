@@ -543,6 +543,133 @@ class InventoriController extends Controller
         exit;
     }
 
+    // ========== LAPORAN BARANG PER RAK ==========
+    public function laporanRak(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $rak = $request->rak ?? 'all';
+        
+        // Get all rak options
+        $rakOptions = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'O'];
+        
+        // Query barang berdasarkan rak
+        if ($rak === 'all') {
+            $barangs = MasterBarang::orderBy('lokasi_rak', 'asc')
+                ->orderBy('nama_barang', 'asc')
+                ->get()
+                ->groupBy('lokasi_rak');
+        } else {
+            $barangs = MasterBarang::where('lokasi_rak', $rak)
+                ->orderBy('nama_barang', 'asc')
+                ->get()
+                ->groupBy('lokasi_rak');
+        }
+        
+        // Calculate totals
+        $totalBarang = 0;
+        $totalStok = 0;
+        foreach ($barangs as $rakGroup => $items) {
+            $totalBarang += $items->count();
+            $totalStok += $items->sum('stok');
+        }
+
+        return view('laporan.rak', compact('barangs', 'rak', 'rakOptions', 'totalBarang', 'totalStok'));
+    }
+
+    public function laporanRakPdf(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $rak = $request->rak ?? 'all';
+        
+        if ($rak === 'all') {
+            $barangs = MasterBarang::orderBy('lokasi_rak', 'asc')
+                ->orderBy('nama_barang', 'asc')
+                ->get()
+                ->groupBy('lokasi_rak');
+        } else {
+            $barangs = MasterBarang::where('lokasi_rak', $rak)
+                ->orderBy('nama_barang', 'asc')
+                ->get()
+                ->groupBy('lokasi_rak');
+        }
+        
+        $totalBarang = 0;
+        $totalStok = 0;
+        foreach ($barangs as $rakGroup => $items) {
+            $totalBarang += $items->count();
+            $totalStok += $items->sum('stok');
+        }
+
+        $pdf = Pdf::loadView('laporan.pdf.rak', compact('barangs', 'rak', 'totalBarang', 'totalStok'));
+        return $pdf->download('laporan_barang_per_rak' . ($rak !== 'all' ? '_rak_' . $rak : '') . '.pdf');
+    }
+
+    public function laporanRakExcel(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $rak = $request->rak ?? 'all';
+        
+        return Excel::download(new LaporanExport('rak', $rak), 'laporan_barang_per_rak' . ($rak !== 'all' ? '_rak_' . $rak : '') . '.xlsx');
+    }
+
+    public function laporanRakCsv(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $rak = $request->rak ?? 'all';
+        
+        if ($rak === 'all') {
+            $barangs = MasterBarang::orderBy('lokasi_rak', 'asc')
+                ->orderBy('nama_barang', 'asc')
+                ->get()
+                ->groupBy('lokasi_rak');
+        } else {
+            $barangs = MasterBarang::where('lokasi_rak', $rak)
+                ->orderBy('nama_barang', 'asc')
+                ->get()
+                ->groupBy('lokasi_rak');
+        }
+
+        $filename = 'laporan_barang_per_rak' . ($rak !== 'all' ? '_rak_' . $rak : '') . '.csv';
+        
+        header('Content-Type: text/csv');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        
+        $output = fopen('php://output', 'w');
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        fputcsv($output, ['No', 'Rak', 'Barcode', 'Nama Barang', 'Stok']);
+        
+        $no = 1;
+        foreach ($barangs as $rakGroup => $items) {
+            foreach ($items as $item) {
+                fputcsv($output, [
+                    $no++,
+                    'Rak ' . $item->lokasi_rak,
+                    $item->barcode,
+                    $item->nama_barang,
+                    $item->stok
+                ]);
+            }
+        }
+        
+        $totalStok = 0;
+        foreach ($barangs as $items) {
+            $totalStok += $items->sum('stok');
+        }
+        fputcsv($output, ['', '', 'TOTAL BARANG', $no - 1, $totalStok]);
+        
+        fclose($output);
+        exit;
+    }
+
     // ========== SEARCH API ==========
     public function searchBarang(Request $request)
     {

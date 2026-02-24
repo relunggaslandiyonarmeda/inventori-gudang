@@ -16,11 +16,7 @@
     </style>
 </head>
 <body>
-    <div style="text-align: center; margin-bottom: 20px;">
-        <a href="{{ route('laporan.masuk', ['bulan' => $bulan, 'tahun' => $tahun]) }}" style="color: #2196F3; text-decoration: none;">
-            ← Kembali ke Laporan
-        </a>
-    </div>
+    
     <div class="header">
         <h1>LAPORAN BARANG MASUK</h1>
         <p>Gudang IT - {{ \Carbon\Carbon::createFromDate($tahun, (int)$bulan)->format('F') }} {{ $tahun }}</p>

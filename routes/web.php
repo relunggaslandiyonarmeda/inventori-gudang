@@ -55,6 +55,12 @@ Route::get('/laporan-gabungan/pdf', [InventoriController::class, 'laporanGabunga
 Route::get('/laporan-gabungan/excel', [InventoriController::class, 'laporanGabunganExcel'])->name('laporan.gabungan.excel');
 Route::get('/laporan-gabungan/csv', [InventoriController::class, 'laporanGabunganCsv'])->name('laporan.gabungan.csv');
 
+// Laporan Barang per Rak
+Route::get('/laporan-rak', [InventoriController::class, 'laporanRak'])->name('laporan.rak');
+Route::get('/laporan-rak/pdf', [InventoriController::class, 'laporanRakPdf'])->name('laporan.rak.pdf');
+Route::get('/laporan-rak/excel', [InventoriController::class, 'laporanRakExcel'])->name('laporan.rak.excel');
+Route::get('/laporan-rak/csv', [InventoriController::class, 'laporanRakCsv'])->name('laporan.rak.csv');
+
 // Search API
 Route::get('/search-barang', [InventoriController::class, 'searchBarang'])->name('search.barang');
 

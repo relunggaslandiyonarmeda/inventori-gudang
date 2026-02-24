@@ -3,167 +3,226 @@
 @section('title', 'Barang Masuk')
 
 @section('content')
-<!-- Back Button -->
-<div class="mb-4">
-    <a href="{{ route('dashboard') }}" class="inline-flex items-center text-blue-600 hover:text-blue-800">
-        <i class="fas fa-arrow-left mr-2"></i> Kembali ke Dashboard
-    </a>
-</div>
-
-<div class="text-center mb-4 sm:mb-6">
-    <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">Barang Masuk</h1>
-    <p class="text-gray-600 text-sm sm:text-base">Tambah stok barang dengan scan barcode</p>
+<!-- Page Header -->
+<div class="page-header">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active">Barang Masuk</li>
+                </ol>
+            </nav>
+            <h1 class="page-title">Barang Masuk</h1>
+            <p class="page-subtitle">Tambah stok barang dengan scan barcode</p>
+        </div>
+    </div>
 </div>
 
 @if(Session::has('success'))
-<div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+<div class="alert alert-success alert-dismissible fade show" role="alert">
+    <i class="bi bi-check-circle me-2"></i>
     {{ Session::get('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
 
 @if(Session::has('error'))
-<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <i class="bi bi-exclamation-circle me-2"></i>
     {{ Session::get('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
 
 <!-- Tabs -->
-<div class="mb-4">
-    <div class="flex border-b overflow-x-auto">
-        <button onclick="showTab('scan')" id="tab-scan" class="px-3 sm:px-4 py-2 border-b-2 border-blue-500 text-blue-600 font-semibold whitespace-nowrap text-sm sm:text-base">
-            <i class="fas fa-camera"></i> <span class="hidden sm:inline">Scan Barcode</span>
+<ul class="nav nav-tabs mb-4" id="barangMasukTab" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="scan-tab-btn" data-bs-toggle="tab" data-bs-target="#scan" type="button">
+            <i class="bi bi-camera me-2"></i>Scan Barcode
         </button>
-        <button onclick="showTab('manual')" id="tab-manual" class="px-3 sm:px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
-            <i class="fas fa-search"></i> <span class="hidden sm:inline">Manual Search</span>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="manual-tab-btn" data-bs-toggle="tab" data-bs-target="#manual" type="button">
+            <i class="bi bi-search me-2"></i>Pencarian Manual
         </button>
-    </div>
-</div>
+    </li>
+</ul>
 
-<!-- Scan Tab -->
-<div id="scan-tab" class="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-    <h2 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Tambah Stok (Scan Barcode)</h2>
-    
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <!-- Scanner -->
-        <div>
-            <div class="scanner-container mb-3 sm:mb-4" id="scanner-container">
-                <div id="interactive" class="viewport"></div>
+<!-- Tab Content -->
+<div class="tab-content" id="barangMasukTabContent">
+    <!-- Scan Tab -->
+    <div class="tab-pane fade show active" id="scan">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle text-success me-2"></i>
+                    Tambah Stok via Scan
+                </h5>
             </div>
-            <button onclick="startScanner()" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded mb-2">
-                <i class="fas fa-play"></i> Mulai Scanner
-            </button>
-            <button onclick="stopScanner()" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded">
-                <i class="fas fa-stop"></i> Stop Scanner
-            </button>
-            <p class="text-xs sm:text-sm text-gray-500 mt-2 text-center">Arahkan kamera ke barcode</p>
-        </div>
+            <div class="card-body">
+                <div class="row g-4">
+                    <!-- Scanner -->
+                    <div class="col-lg-6">
+                        <div class="scanner-container mb-3" id="scanner-container">
+                            <div id="interactive" class="viewport"></div>
+                            <div class="scanner-overlay"></div>
+                            <div class="scanner-hint">
+                                <i class="bi bi-camera-video me-1"></i>
+                                Arahkan kamera ke barcode
+                            </div>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button onclick="startScanner()" class="btn btn-primary">
+                                <i class="bi bi-play-fill me-2"></i>Mulai Scanner
+                            </button>
+                            <button onclick="stopScanner()" class="btn btn-outline-danger">
+                                <i class="bi bi-stop-fill me-2"></i>Stop Scanner
+                            </button>
+                        </div>
+                    </div>
 
-        <!-- Form -->
-        <div>
-            <form action="{{ route('barang.masuk.store') }}" method="POST">
-                @csrf
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Barcode</label>
-                    <div class="flex gap-2">
-                        <input type="text" name="barcode" id="barcode-input" required
-                            class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-mobile"
-                            placeholder="Scan atau ketik barcode">
-                        <button type="button" onclick="generateBarcode()" 
-                            class="bg-purple-500 hover:bg-purple-600 text-white px-3 sm:px-4 py-2 rounded whitespace-nowrap">
-                            <i class="fas fa-barcode"></i> Generate
-                        </button>
+                    <!-- Form -->
+                    <div class="col-lg-6">
+                        <form action="{{ route('barang.masuk.store') }}" method="POST">
+                            @csrf
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-upc text-primary me-1"></i>
+                                    Barcode
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                                    <input type="text" name="barcode" id="barcode-input" class="form-control" required placeholder="Scan atau ketik barcode">
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-123 text-primary me-1"></i>
+                                        Jumlah Masuk
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-plus"></i></span>
+                                        <input type="number" name="jumlah_masuk" min="1" value="1" class="form-control" required placeholder="Jumlah">
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">
+                                        <i class="bi bi-calendar text-primary me-1"></i>
+                                        Tanggal
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                                        <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" class="form-control" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 mb-3">
+                                <label class="form-label">
+                                    <i class="bi bi-chat-text text-primary me-1"></i>
+                                    Keterangan (Opsional)
+                                </label>
+                                <textarea name="keterangan" rows="2" class="form-control" placeholder="Tambahkan keterangan..."></textarea>
+                            </div>
+
+                            <div class="mt-4">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="bi bi-plus-lg me-2"></i>Tambah Stok
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Jumlah Masuk</label>
-                    <input type="number" name="jumlah_masuk" min="1" value="1" required
-                        class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 input-mobile"
-                        placeholder="Masukkan jumlah">
-                </div>
-
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Tanggal</label>
-                    <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" required
-                        class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-
-                <div class="mb-3 sm:mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-1 sm:mb-2">Keterangan (Opsional)</label>
-                    <textarea name="keterangan" rows="2"
-                        class="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Tambahkan keterangan"></textarea>
-                </div>
-
-                <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                    <i class="fas fa-plus"></i> Tambah Stok
-                </button>
-            </form>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- Manual Tab -->
-<div id="manual-tab" class="hidden">
-    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
-        <h2 class="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Tambah Stok (Manual Search)</h2>
-        
-        <!-- Search -->
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2">Cari Barang</label>
-            <input type="text" id="search-input" placeholder="Ketik nama atau barcode..."
-                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                onkeyup="searchBarang()">
-            
-            <div id="search-results" class="mt-2 max-h-48 overflow-y-auto border rounded hidden">
-                <!-- Search results will be here -->
+    <!-- Manual Tab -->
+    <div class="tab-pane fade" id="manual">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-search text-success me-2"></i>
+                    Tambah Stok via Pencarian
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Search -->
+                <div class="mb-4">
+                    <label class="form-label">
+                        <i class="bi bi-search text-primary me-1"></i>
+                        Cari Barang
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="search-input" class="form-control" placeholder="Ketik nama atau barcode..." onkeyup="searchBarang()">
+                    </div>
+                    <div id="search-results" class="list-group mt-2" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+
+                <form action="{{ route('barang.masuk.manual') }}" method="POST" id="manual-form">
+                    @csrf
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Barcode</label>
+                            <input type="text" name="barcode_manual" id="barcode-manual" class="form-control" required readonly>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Nama Barang</label>
+                            <input type="text" id="nama-manual" class="form-control" disabled>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label">Stok Saat Ini</label>
+                            <input type="text" id="stok-manual" class="form-control" disabled>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-123 text-primary me-1"></i>
+                                Jumlah Masuk
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-plus"></i></span>
+                                <input type="number" name="jumlah_masuk" min="1" value="1" class="form-control" required placeholder="Jumlah">
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">
+                                <i class="bi bi-calendar text-primary me-1"></i>
+                                Tanggal
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-calendar3"></i></span>
+                                <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-3 mb-3">
+                        <label class="form-label">
+                            <i class="bi bi-chat-text text-primary me-1"></i>
+                            Keterangan (Opsional)
+                        </label>
+                        <textarea name="keterangan" rows="2" class="form-control" placeholder="Tambahkan keterangan..."></textarea>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="bi bi-plus-lg me-2"></i>Tambah Stok
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-
-        <form action="{{ route('barang.masuk.manual') }}" method="POST" id="manual-form">
-            @csrf
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Barcode</label>
-                <input type="text" name="barcode_manual" id="barcode-manual" required readonly
-                    class="w-full px-4 py-2 border rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Nama Barang</label>
-                <input type="text" id="nama-manual" disabled
-                    class="w-full px-4 py-2 border rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Stok Saat Ini</label>
-                <input type="text" id="stok-manual" disabled
-                    class="w-full px-4 py-2 border rounded-lg bg-gray-100">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Jumlah Masuk</label>
-                <input type="number" name="jumlah_masuk" min="1" value="1" required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Masukkan jumlah">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Tanggal</label>
-                <input type="date" name="tanggal" value="{{ date('Y-m-d') }}" required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-gray-700 text-sm font-bold mb-2">Keterangan (Opsional)</label>
-                <textarea name="keterangan" rows="2"
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Tambahkan keterangan"></textarea>
-            </div>
-
-            <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">
-                <i class="fas fa-plus"></i> Tambah Stok
-            </button>
-        </form>
     </div>
 </div>
 @endsection
@@ -172,79 +231,9 @@
 <script>
 let scannerActive = false;
 
-function showTab(tab) {
-    if (tab === 'scan') {
-        document.getElementById('scan-tab').classList.remove('hidden');
-        document.getElementById('manual-tab').classList.add('hidden');
-        document.getElementById('tab-scan').classList.add('border-blue-500', 'text-blue-600');
-        document.getElementById('tab-scan').classList.remove('border-transparent', 'text-gray-500');
-        document.getElementById('tab-manual').classList.add('border-transparent', 'text-gray-500');
-        document.getElementById('tab-manual').classList.remove('border-blue-500', 'text-blue-600');
-    } else {
-        document.getElementById('scan-tab').classList.add('hidden');
-        document.getElementById('manual-tab').classList.remove('hidden');
-        document.getElementById('tab-manual').classList.add('border-blue-500', 'text-blue-600');
-        document.getElementById('tab-manual').classList.remove('border-transparent', 'text-gray-500');
-        document.getElementById('tab-scan').classList.add('border-transparent', 'text-gray-500');
-        document.getElementById('tab-scan').classList.remove('border-blue-500', 'text-blue-600');
-    }
-}
-
-// Generate random barcode
-function generateBarcode() {
-    const timestamp = Date.now().toString();
-    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
-    const barcode = 'BRG' + timestamp.slice(-8) + random;
-    document.getElementById('barcode-input').value = barcode;
-}
-
-// Print barcode function - 50mm x 20mm label size
-function printBarcode(barcode, namaBarang) {
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Cetak Barcode - ${barcode}</title>
-            <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"><\/script>
-            <style>
-                @page { size: 50mm 20mm; margin: 0; }
-                @media print { body { margin: 0; padding: 0; } .no-print { display: none !important; } }
-                body { width: 50mm; height: 20mm; margin: 0; padding: 1mm; font-family: Arial, sans-serif; box-sizing: border-box; }
-                .barcode-container { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; height: 100%; gap: 2mm; }
-                .barcode-info { flex: 1; overflow: hidden; }
-                .barcode-info .nama { font-size: 6pt; font-weight: bold; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 22mm; }
-                .barcode-info .code { font-size: 5pt; margin: 0; font-family: 'Courier New', monospace; }
-                .barcode-svg { width: 28mm; height: 14mm; }
-                .no-print { position: fixed; top: 10px; left: 10px; z-index: 9999; }
-                .no-print button { padding: 6px 12px; margin: 3px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
-                .btn-print { background: #2563eb; color: white; }
-                .btn-close { background: #6b7280; color: white; }
-            </style>
-        </head>
-        <body>
-            <div class="no-print">
-                <button class="btn-print" onclick="window.print()"><i class="fas fa-print"></i> Cetak</button>
-                <button class="btn-close" onclick="window.close()">Tutup</button>
-            </div>
-            <div class="barcode-container">
-                <div class="barcode-info">
-                    <p class="nama">${namaBarang}</p>
-                    <p class="code">${barcode}</p>
-                </div>
-                <svg id="barcode" class="barcode-svg"></svg>
-            </div>
-            <script> JsBarcode("#barcode", "${barcode}", { format: "CODE128", width: 1, height: 25, displayValue: false, margin: 0 }); <\/script>
-        </body>
-        </html>
-    `);
-    printWindow.document.close();
-}
-
 function startScanner() {
     if (scannerActive) return;
     
-    // Remove previous event listener to prevent duplicates
     Quagga.offDetected();
     
     Quagga.init({
@@ -274,18 +263,15 @@ function startScanner() {
             return;
         }
         
-        // Register detection handler BEFORE starting
         Quagga.onDetected(function(result) {
             if (result.codeResult && result.codeResult.code) {
                 const code = result.codeResult.code;
                 document.getElementById('barcode-input').value = code;
                 document.getElementById('barcode-input').focus();
                 
-                // Play beep sound
                 let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPIHzn7uypYyEPHn7o7eqoZCEPJH/m7eqnYyAO');
                 audio.play().catch(() => {});
                 
-                // Auto-close camera after successful scan
                 stopScanner();
             }
         });
@@ -307,7 +293,7 @@ function searchBarang() {
     let query = document.getElementById('search-input').value;
     
     if (query.length < 2) {
-        document.getElementById('search-results').classList.add('hidden');
+        document.getElementById('search-results').innerHTML = '';
         return;
     }
     
@@ -318,15 +304,24 @@ function searchBarang() {
                 let html = '';
                 if (data.length > 0) {
                     data.forEach(item => {
-                        html += `<div class="p-3 border-b hover:bg-gray-50 cursor-pointer" onclick="selectBarang('${item.barcode}', '${item.nama_barang}', ${item.stok})">
-                            <div class="font-bold">${item.nama_barang}</div>
-                            <div class="text-sm text-gray-500">Barcode: ${item.barcode} | Stok: ${item.stok} | Rak: ${item.lokasi_rak}</div>
-                        </div>`;
+                        html += `<a href="#" class="list-group-item list-group-item-action" onclick="selectBarang('${item.barcode}', '${item.nama_barang}', ${item.stok})">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fw-semibold">${item.nama_barang}</span>
+                                    <br>
+                                    <small class="text-muted">
+                                        <code>${item.barcode}</code> | 
+                                        Stok: <span class="badge bg-secondary">${item.stok}</span> | 
+                                        Rak: <span class="badge bg-primary">${item.lokasi_rak}</span>
+                                    </small>
+                                </div>
+                                <i class="bi bi-chevron-right text-muted"></i>
+                            </div>
+                        </a>`;
                     });
                     document.getElementById('search-results').innerHTML = html;
-                    document.getElementById('search-results').classList.remove('hidden');
                 } else {
-                    document.getElementById('search-results').classList.add('hidden');
+                    document.getElementById('search-results').innerHTML = '<div class="list-group-item text-muted text-center">Tidak ditemukan</div>';
                 }
             });
     }, 300);
@@ -336,7 +331,7 @@ function selectBarang(barcode, nama, stok) {
     document.getElementById('barcode-manual').value = barcode;
     document.getElementById('nama-manual').value = nama;
     document.getElementById('stok-manual').value = stok;
-    document.getElementById('search-results').classList.add('hidden');
+    document.getElementById('search-results').innerHTML = '';
     document.getElementById('search-input').value = '';
 }
 </script>
