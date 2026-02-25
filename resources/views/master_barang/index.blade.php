@@ -381,6 +381,19 @@ function printBarcode(barcode, namaBarang) {
 function startScanner() {
     if (scannerActive) return;
     
+    // Check if running on HTTPS or localhost
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+    
+    // Check for secure context
+    if (!isSecure && window.location.hostname !== 'localhost') {
+        alert('PERINGATAN: Untuk menggunakan scanner kamera, akses aplikasi melalui HTTPS atau gunakan localhost.\n\n' +
+              'Jika menggunakan ngrok, gunakan perintah: ngrok http https --host-header=rewrite\n' +
+              'atau aktifkan HTTPS di ngrok dashboard.');
+        return;
+    }
+    
     Quagga.offDetected();
     
     Quagga.init({
@@ -406,7 +419,22 @@ function startScanner() {
     }, function(err) {
         if (err) {
             console.log(err);
-            alert('Gagal memulai kamera: ' + err.message + '\n\nPastikan kamera diizinkan dan tidak digunakan aplikasi lain.');
+            let errorMessage = 'Gagal memulai kamera: ' + err.message + '\n\n';
+            
+            if (err.name === 'NotAllowedError') {
+                errorMessage += 'SOLUSI:\n' +
+                    '1. Klik ikon 🔒/🔓 di address bar\n' +
+                    '2. Izinkan akses kamera untuk situs ini\n' +
+                    '3. Atau gunakan HTTPS untuk aksesScanner';
+            } else if (err.name === 'NotFoundError') {
+                errorMessage += 'SOLUSI: Pastikan perangkat memiliki kamera.';
+            } else if (err.name === 'NotReadableError') {
+                errorMessage += 'SOLUSI: Kamera sedang digunakan aplikasi lain.';
+            } else {
+                errorMessage += 'Pastikan kamera diizinkan dan tidak digunakan aplikasi lain.';
+            }
+            
+            alert(errorMessage);
             return;
         }
         

@@ -3,6 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>@yield('title', 'Inventori Gudang IT')</title>
     
     <!-- Bootstrap 5 CSS (Local) -->
@@ -612,22 +617,34 @@
         @media (max-width: 767.98px) {
             .sidebar-fixed {
                 transform: translateX(-100%);
+                width: 280px;
             }
             .sidebar-fixed.show {
                 transform: translateX(0);
             }
             .content-wrapper {
                 margin-left: 0;
-                padding: 16px;
+                margin-top: 60px;
+                padding: 16px 12px;
             }
-            .navbar-toggler-visible {
-                display: block !important;
+            .navbar-fixed {
+                height: 60px;
             }
-            .user-name {
-                display: none;
+            .page-title {
+                font-size: 1.4rem;
             }
-            .stat-value {
-                font-size: 1.5rem;
+            .card {
+                margin-bottom: 16px;
+            }
+            .btn {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+            .table {
+                font-size: 13px;
+            }
+            .scanner-container {
+                height: 250px;
             }
         }
 
