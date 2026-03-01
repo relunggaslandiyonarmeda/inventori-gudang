@@ -7,6 +7,8 @@ use App\Models\BarangMasuk;
 use App\Models\BarangKeluar;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
@@ -59,7 +61,15 @@ class InventoriController extends Controller
             'lokasi_rak' => 'required|in:A,B,C,D,E,F,G,H,O',
         ]);
 
-        MasterBarang::create($request->all());
+        $barang = MasterBarang::create($request->all());
+        
+        Log::info('Barang ditambahkan', [
+            'barcode' => $barang->barcode,
+            'nama_barang' => $barang->nama_barang,
+            'stok' => $barang->stok,
+            'lokasi_rak' => $barang->lokasi_rak,
+            'user' => Session::get('admin_username')
+        ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil ditambahkan!');
     }
@@ -76,7 +86,24 @@ class InventoriController extends Controller
         ]);
 
         $barang = MasterBarang::findOrFail($barcode);
+        
+        // Prevent changing barcode to an existing one
+        if ($request->has('barcode') && $request->barcode !== $barcode) {
+            $exists = MasterBarang::where('barcode', $request->barcode)->exists();
+            if ($exists) {
+                return back()->with('error', 'Barcode sudah digunakan oleh barang lain!');
+            }
+        }
+        
         $barang->update($request->all());
+
+        Log::info('Barang diupdate', [
+            'barcode' => $barang->barcode,
+            'nama_barang' => $barang->nama_barang,
+            'stok' => $barang->stok,
+            'lokasi_rak' => $barang->lokasi_rak,
+            'user' => Session::get('admin_username')
+        ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil diupdate!');
     }
@@ -88,6 +115,12 @@ class InventoriController extends Controller
 
         $barang = MasterBarang::findOrFail($barcode);
         $barang->delete();
+
+        Log::warning('Barang dihapus', [
+            'barcode' => $barcode,
+            'nama_barang' => $barang->nama_barang,
+            'user' => Session::get('admin_username')
+        ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil dihapus!');
     }
@@ -114,15 +147,29 @@ class InventoriController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Update stok di master_barang
-        $barang = MasterBarang::findOrFail($request->barcode);
-        $barang->stok = $barang->stok + $request->jumlah_masuk;
-        $barang->save();
+        try {
+            DB::transaction(function () use ($request) {
+                // Update stok di master_barang
+                $barang = MasterBarang::findOrFail($request->barcode);
+                $barang->stok = $barang->stok + $request->jumlah_masuk;
+                $barang->save();
 
-        // Simpan ke barang_masuk
-        BarangMasuk::create($request->all());
+                // Simpan ke barang_masuk
+                BarangMasuk::create($request->all());
+                
+                Log::info('Barang masuk dicatat', [
+                    'barcode' => $request->barcode,
+                    'nama_barang' => $barang->nama_barang,
+                    'jumlah_masuk' => $request->jumlah_masuk,
+                    'tanggal' => $request->tanggal,
+                    'user' => Session::get('admin_username')
+                ]);
+            });
 
-        return redirect()->route('barang.masuk')->with('success', 'Barang masuk berhasil dicatat!');
+            return redirect()->route('barang.masuk')->with('success', 'Barang masuk berhasil dicatat!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     public function barangMasukManual(Request $request)
@@ -137,20 +184,26 @@ class InventoriController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Update stok di master_barang
-        $barang = MasterBarang::findOrFail($request->barcode_manual);
-        $barang->stok = $barang->stok + $request->jumlah_masuk;
-        $barang->save();
+        try {
+            DB::transaction(function () use ($request) {
+                // Update stok di master_barang
+                $barang = MasterBarang::findOrFail($request->barcode_manual);
+                $barang->stok = $barang->stok + $request->jumlah_masuk;
+                $barang->save();
 
-        // Simpan ke barang_masuk
-        BarangMasuk::create([
-            'barcode' => $request->barcode_manual,
-            'jumlah_masuk' => $request->jumlah_masuk,
-            'tanggal' => $request->tanggal,
-            'keterangan' => $request->keterangan,
-        ]);
+                // Simpan ke barang_masuk
+                BarangMasuk::create([
+                    'barcode' => $request->barcode_manual,
+                    'jumlah_masuk' => $request->jumlah_masuk,
+                    'tanggal' => $request->tanggal,
+                    'keterangan' => $request->keterangan,
+                ]);
+            });
 
-        return redirect()->route('barang.masuk')->with('success', 'Barang masuk berhasil dicatat!');
+            return redirect()->route('barang.masuk')->with('success', 'Barang masuk berhasil dicatat!');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+        }
     }
 
     // ========== BARANG KELUAR ==========
@@ -175,20 +228,34 @@ class InventoriController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Cek stok cukup
-        $barang = MasterBarang::findOrFail($request->barcode);
-        if ($barang->stok < $request->jumlah_keluar) {
-            return back()->with('error', 'Stok tidak cukup! Stok tersedia: ' . $barang->stok);
+        try {
+            DB::transaction(function () use ($request) {
+                // Cek stok cukup
+                $barang = MasterBarang::findOrFail($request->barcode);
+                if ($barang->stok < $request->jumlah_keluar) {
+                    throw new \Exception('Stok tidak cukup! Stok tersedia: ' . $barang->stok);
+                }
+
+                // Update stok di master_barang
+                $barang->stok = $barang->stok - $request->jumlah_keluar;
+                $barang->save();
+
+                // Simpan ke barang_keluar
+                BarangKeluar::create($request->all());
+                
+                Log::info('Barang keluar dicatat', [
+                    'barcode' => $request->barcode,
+                    'nama_barang' => $barang->nama_barang,
+                    'jumlah_keluar' => $request->jumlah_keluar,
+                    'tanggal' => $request->tanggal,
+                    'user' => Session::get('admin_username')
+                ]);
+            });
+
+            return redirect()->route('barang.keluar')->with('success', 'Barang keluar berhasil dicatat!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        // Update stok di master_barang
-        $barang->stok = $barang->stok - $request->jumlah_keluar;
-        $barang->save();
-
-        // Simpan ke barang_keluar
-        BarangKeluar::create($request->all());
-
-        return redirect()->route('barang.keluar')->with('success', 'Barang keluar berhasil dicatat!');
     }
 
     public function barangKeluarManual(Request $request)
@@ -203,25 +270,31 @@ class InventoriController extends Controller
             'keterangan' => 'nullable|string',
         ]);
 
-        // Cek stok cukup
-        $barang = MasterBarang::findOrFail($request->barcode_manual);
-        if ($barang->stok < $request->jumlah_keluar) {
-            return back()->with('error', 'Stok tidak cukup! Stok tersedia: ' . $barang->stok);
+        try {
+            DB::transaction(function () use ($request) {
+                // Cek stok cukup
+                $barang = MasterBarang::findOrFail($request->barcode_manual);
+                if ($barang->stok < $request->jumlah_keluar) {
+                    throw new \Exception('Stok tidak cukup! Stok tersedia: ' . $barang->stok);
+                }
+
+                // Update stok di master_barang
+                $barang->stok = $barang->stok - $request->jumlah_keluar;
+                $barang->save();
+
+                // Simpan ke barang_keluar
+                BarangKeluar::create([
+                    'barcode' => $request->barcode_manual,
+                    'jumlah_keluar' => $request->jumlah_keluar,
+                    'tanggal' => $request->tanggal,
+                    'keterangan' => $request->keterangan,
+                ]);
+            });
+
+            return redirect()->route('barang.keluar')->with('success', 'Barang keluar berhasil dicatat!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
         }
-
-        // Update stok di master_barang
-        $barang->stok = $barang->stok - $request->jumlah_keluar;
-        $barang->save();
-
-        // Simpan ke barang_keluar
-        BarangKeluar::create([
-            'barcode' => $request->barcode_manual,
-            'jumlah_keluar' => $request->jumlah_keluar,
-            'tanggal' => $request->tanggal,
-            'keterangan' => $request->keterangan,
-        ]);
-
-        return redirect()->route('barang.keluar')->with('success', 'Barang keluar berhasil dicatat!');
     }
 
     // ========== LAPORAN ==========

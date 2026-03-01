@@ -467,7 +467,8 @@ function editBarang(barcode, nama, stok, rak) {
     document.getElementById('edit-nama').value = nama;
     document.getElementById('edit-stok').value = stok;
     document.getElementById('edit-rak').value = rak;
-    document.getElementById('edit-form').action = '/master-barang/' + barcode;
+    // Use Laravel's url() helper to get the correct base path for subdirectory support
+    document.getElementById('edit-form').action = '{{ url('/master-barang') }}/' + encodeURIComponent(barcode);
     editModal.show();
 }
 

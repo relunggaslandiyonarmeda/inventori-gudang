@@ -318,6 +318,13 @@
                         </div>
                     </div>
 
+                    <div class="form-group form-check">
+                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                        <label class="form-check-label" for="remember">
+                            Ingat saya (login permanen)
+                        </label>
+                    </div>
+
                     <button type="submit" class="btn btn-login">
                         <i class="bi bi-box-arrow-in-right me-2"></i>
                         Masuk ke Sistem

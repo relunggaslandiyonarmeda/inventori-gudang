@@ -123,4 +123,17 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Credentials
+    |--------------------------------------------------------------------------
+    |
+    | These credentials are used for admin authentication.
+    | Set these in your .env file for security.
+    |
+    */
+
+    'admin_username' => env('ADMIN_USERNAME', 'admin'),
+    'admin_password' => env('ADMIN_PASSWORD', 'admin123'),
+
 ];

@@ -326,7 +326,7 @@ function searchBarang() {
     }
     
     searchTimeout = setTimeout(function() {
-        fetch('/search-barang?q=' + encodeURIComponent(query))
+        fetch('{{ url('/search-barang') }}?q=' + encodeURIComponent(query))
             .then(response => response.json())
             .then(data => {
                 let html = '';

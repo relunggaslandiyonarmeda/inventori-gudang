@@ -25,10 +25,23 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Login admin hardcoded (username: admin, password: admin)
-        if ($request->username === 'admin' && $request->password === 'admin') {
+        // Login admin using environment variables
+        $adminUsername = config('app.admin_username', 'admin');
+        $adminPassword = config('app.admin_password', 'admin123');
+        
+        if ($request->username === $adminUsername && $request->password === $adminPassword) {
+            // Regenerate session ID to prevent session fixation attacks
+            $request->session()->regenerate();
+            
             Session::put('admin_logged_in', true);
             Session::put('admin_username', 'admin');
+            
+            // If "remember me" is checked, set a long-lived cookie
+            if ($request->has('remember')) {
+                // Set cookie for 1 year (525600 minutes)
+                cookie()->queue('admin_remember', true, 525600);
+            }
+            
             return redirect()->route('dashboard');
         }
 
@@ -40,6 +53,9 @@ class AuthController extends Controller
      */
     public function logout()
     {
+        // Clear the remember me cookie
+        cookie()->queue(cookie()->forget('admin_remember'));
+        
         Session::flush();
         return redirect()->route('login');
     }
