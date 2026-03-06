@@ -231,21 +231,10 @@
 <script>
 let scannerActive = false;
 
-// Check if running on HTTPS or localhost
-const isSecure = window.location.protocol === 'https:' || 
-                 window.location.hostname === 'localhost' || 
-                 window.location.hostname === '127.0.0.1';
+// Security check removed - allow camera access from HTTP/IP
 
 function startScanner() {
     if (scannerActive) return;
-    
-    // Check for secure context
-    if (!isSecure && window.location.hostname !== 'localhost') {
-        alert('PERINGATAN: Untuk menggunakan scanner kamera, akses aplikasi melalui HTTPS atau gunakan localhost.\n\n' +
-              'Jika menggunakan ngrok, gunakan perintah: ngrok http https --host-header=rewrite\n' +
-              'atau aktifkan HTTPS di ngrok dashboard.');
-        return;
-    }
     
     Quagga.offDetected();
     

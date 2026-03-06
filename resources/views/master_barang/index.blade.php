@@ -348,11 +348,10 @@ function printBarcode(barcode, namaBarang) {
                 @page { size: 50mm 20mm; margin: 0; }
                 @media print { body { margin: 0; padding: 0; } .no-print { display: none !important; } }
                 body { width: 50mm; height: 20mm; margin: 0; padding: 1mm; font-family: Arial, sans-serif; box-sizing: border-box; }
-                .barcode-container { display: flex; flex-direction: row; align-items: center; justify-content: flex-start; height: 100%; gap: 2mm; }
-                .barcode-info { flex: 1; overflow: hidden; }
-                .barcode-info .nama { font-size: 6pt; font-weight: bold; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 22mm; }
-                .barcode-info .code { font-size: 5pt; margin: 0; font-family: 'Courier New', monospace; }
-                .barcode-svg { width: 28mm; height: 14mm; }
+                .barcode-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding-top: 1mm; }
+                .barcode-info { text-align: center; margin-bottom: -1mm; }
+                .barcode-info .nama { font-size: 11pt; font-weight: bold; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 48mm; line-height: 1; }
+                .barcode-svg { width: 45mm; height: 9mm; margin: 0; }
                 .no-print { position: fixed; top: 10px; left: 10px; z-index: 9999; }
                 .no-print button { padding: 6px 12px; margin: 3px; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; }
                 .btn-print { background: #4f46e5; color: white; }
@@ -367,11 +366,10 @@ function printBarcode(barcode, namaBarang) {
             <div class="barcode-container">
                 <div class="barcode-info">
                     <p class="nama">${namaBarang}</p>
-                    <p class="code">${barcode}</p>
                 </div>
                 <svg id="barcode" class="barcode-svg"></svg>
             </div>
-            <script> JsBarcode("#barcode", "${barcode}", { format: "CODE128", width: 1, height: 25, displayValue: false, margin: 0 }); <\/script>
+            <script> JsBarcode("#barcode", "${barcode}", { format: "CODE128", width: 2, height: 35, displayValue: false, margin: 0 }); <\/script>
         </body>
         </html>
     `);
@@ -381,18 +379,7 @@ function printBarcode(barcode, namaBarang) {
 function startScanner() {
     if (scannerActive) return;
     
-    // Check if running on HTTPS or localhost
-    const isSecure = window.location.protocol === 'https:' || 
-                     window.location.hostname === 'localhost' || 
-                     window.location.hostname === '127.0.0.1';
-    
-    // Check for secure context
-    if (!isSecure && window.location.hostname !== 'localhost') {
-        alert('PERINGATAN: Untuk menggunakan scanner kamera, akses aplikasi melalui HTTPS atau gunakan localhost.\n\n' +
-              'Jika menggunakan ngrok, gunakan perintah: ngrok http https --host-header=rewrite\n' +
-              'atau aktifkan HTTPS di ngrok dashboard.');
-        return;
-    }
+    // Security check removed - allow camera access from HTTP/IP
     
     Quagga.offDetected();
     
