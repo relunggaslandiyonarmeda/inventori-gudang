@@ -688,7 +688,7 @@ class InventoriController extends Controller
 
         $rak = $request->rak ?? 'all';
         
-        return Excel::download(new LaporanExport('rak', $rak), 'laporan_barang_per_rak' . ($rak !== 'all' ? '_rak_' . $rak : '') . '.xlsx');
+        return Excel::download(new LaporanExport('rak', $rak, date('Y')), 'laporan_barang_per_rak' . ($rak !== 'all' ? '_rak_' . $rak : '') . '.xlsx');
     }
 
     public function laporanRakCsv(Request $request)
