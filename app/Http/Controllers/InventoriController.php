@@ -48,7 +48,7 @@ class InventoriController extends Controller
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangs = MasterBarang::orderBy('created_at', 'desc')->get();
+        $barangs = MasterBarang::orderBy('created_at', 'desc')->paginate(10);
         return view('master_barang.index', compact('barangs'));
     }
 
@@ -764,7 +764,7 @@ class InventoriController extends Controller
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::orderBy('id', 'desc')->get();
+        $barangRusaks = BarangRusak::orderBy('id', 'desc')->paginate(10);
         $vehicleGroups = MasterVehicleGroup::orderBy('kode')->get();
         $lokasiUnits = MasterLokasiUnit::orderBy('lokasi')->get();
         $masterBarangs = MasterBarang::orderBy('nama_barang')->get();

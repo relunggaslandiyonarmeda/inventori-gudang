@@ -247,6 +247,16 @@
                         </tbody>
                     </table>
                 </div>
+                @if($barangs->hasPages())
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="text-muted small">
+                            Menampilkan {{ $barangs->firstItem() }} - {{ $barangs->lastItem() }} dari {{ $barangs->total() }} data
+                        </div>
+                        {{ $barangs->appends(request()->query())->fragment('list')->links('pagination::bootstrap-5') }}
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
@@ -326,6 +336,24 @@ let editModal = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    
+    // Check if this is a pagination request (has page parameter or hash is #list)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasPage = urlParams.has('page');
+    const hash = window.location.hash;
+    
+    if (hasPage || hash === '#list') {
+        // Switch to Daftar Barang tab
+        const listTabBtn = document.getElementById('list-tab-btn');
+        const listTab = document.getElementById('list');
+        const scanTabBtn = document.getElementById('scan-tab-btn');
+        const scanTab = document.getElementById('scan');
+        
+        scanTabBtn.classList.remove('active');
+        scanTab.classList.remove('show', 'active');
+        listTabBtn.classList.add('active');
+        listTab.classList.add('show', 'active');
+    }
 });
 
 function generateBarcode() {

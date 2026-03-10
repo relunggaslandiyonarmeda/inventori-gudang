@@ -231,7 +231,7 @@
                         <tbody>
                             @forelse($barangRusaks as $index => $br)
                             <tr>
-                                <td class="text-center">{{ $index + 1 }}</td>
+                                <td class="text-center">{{ $barangRusaks->firstItem() + $index }}</td>
                                 <td>
                                     <code class="bg-warning-subtle text-warning px-2 py-1 rounded">{{ $br->nomor }}</code>
                                 </td>
@@ -475,6 +475,16 @@
                         </tbody>
                     </table>
                 </div>
+                @if($barangRusaks->hasPages())
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                        <div class="text-muted small">
+                            Menampilkan {{ $barangRusaks->firstItem() }} - {{ $barangRusaks->lastItem() }} dari {{ $barangRusaks->total() }} data
+                        </div>
+                        {{ $barangRusaks->links('pagination::bootstrap-5') }}
+                    </div>
+                </div>
+                @endif
             </div>
         </div>
     </div>
