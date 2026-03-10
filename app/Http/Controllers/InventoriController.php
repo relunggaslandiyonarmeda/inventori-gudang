@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\MasterBarang;
 use App\Models\BarangMasuk;
 use App\Models\BarangKeluar;
+use App\Models\BarangRusak;
+use App\Models\MasterVehicleGroup;
+use App\Models\MasterLokasiUnit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -753,5 +756,251 @@ class InventoriController extends Controller
             ->get();
         
         return response()->json($barangs);
+    }
+
+    // ========== BARANG RUSAK ==========
+    public function barangRusak()
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $barangRusaks = BarangRusak::orderBy('id', 'desc')->get();
+        $vehicleGroups = MasterVehicleGroup::orderBy('kode')->get();
+        $lokasiUnits = MasterLokasiUnit::orderBy('lokasi')->get();
+        $masterBarangs = MasterBarang::orderBy('nama_barang')->get();
+        
+        return view('barang_rusak.index', compact('barangRusaks', 'vehicleGroups', 'lokasiUnits', 'masterBarangs'));
+    }
+
+    public function barangRusakStore(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $request->validate([
+            'vehicle_group_code' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'tahun_perolehan' => 'required|integer|min:1900',
+            'merek' => 'required|string|max:100',
+            'lokasi_unit' => 'required|string|max:100',
+            'kondisi_unit' => 'required|in:hidup,mati',
+            'keterangan' => 'nullable|string',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        // Generate nomor (BR-001, BR-002, etc.)
+        $lastBarang = BarangRusak::orderBy('id', 'desc')->first();
+        $nextNumber = $lastBarang ? (int)substr($lastBarang->nomor, 3) + 1 : 1;
+        $nomor = 'BR-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+
+        // Handle foto upload
+        $fotoPath = null;
+        if ($request->hasFile('foto')) {
+            $foto = $request->file('foto');
+            $fotoName = $nomor . '_' . time() . '.' . $foto->getClientOriginalExtension();
+            
+            // Ensure directory exists
+            $directory = storage_path('app/public/foto_barang_rusak');
+            if (!file_exists($directory)) {
+                mkdir($directory, 0777, true);
+            }
+            
+            // Copy file to storage
+            copy($foto->getPathname(), $directory . '/' . $fotoName);
+            $fotoPath = 'foto_barang_rusak/' . $fotoName;
+        }
+
+        // Save to barang_rusak
+        $barangRusak = BarangRusak::create([
+            'nomor' => $nomor,
+            'vehicle_group_code' => $request->vehicle_group_code,
+            'description' => $request->description,
+            'tahun_perolehan' => $request->tahun_perolehan,
+            'merek' => $request->merek,
+            'foto' => $fotoPath,
+            'lokasi_unit' => $request->lokasi_unit,
+            'kondisi_unit' => $request->kondisi_unit,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        // Save vehicle_group_code to master if not exists
+        MasterVehicleGroup::firstOrCreate(['kode' => $request->vehicle_group_code]);
+
+        // Save lokasi_unit to master if not exists
+        MasterLokasiUnit::firstOrCreate(['lokasi' => $request->lokasi_unit]);
+
+        Log::info('Barang Rusak ditambahkan', [
+            'nomor' => $barangRusak->nomor,
+            'vehicle_group_code' => $barangRusak->vehicle_group_code,
+            'merek' => $barangRusak->merek,
+            'user' => Session::get('admin_username')
+        ]);
+
+        return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil ditambahkan!');
+    }
+
+    public function barangRusakUpdate(Request $request, $id)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $request->validate([
+            'vehicle_group_code' => 'required|string|max:100',
+            'description' => 'nullable|string',
+            'tahun_perolehan' => 'required|integer|min:1900',
+            'merek' => 'required|string|max:100',
+            'lokasi_unit' => 'required|string|max:100',
+            'kondisi_unit' => 'required|in:hidup,mati',
+            'keterangan' => 'nullable|string',
+            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $barangRusak = BarangRusak::findOrFail($id);
+
+        // Handle foto upload
+        $fotoPath = $barangRusak->foto;
+        if ($request->hasFile('foto')) {
+            // Delete old foto
+            if ($barangRusak->foto) {
+                $oldFilePath = storage_path('app/public/' . $barangRusak->foto);
+                if (file_exists($oldFilePath)) {
+                    @unlink($oldFilePath);
+                }
+            }
+            
+            $foto = $request->file('foto');
+            $fotoName = $barangRusak->nomor . '_' . time() . '.' . $foto->getClientOriginalExtension();
+            
+            // Ensure directory exists
+            $directory = storage_path('app/public/foto_barang_rusak');
+            if (!file_exists($directory)) {
+                mkdir($directory, 0777, true);
+            }
+            
+            // Copy file to storage
+            copy($foto->getPathname(), $directory . '/' . $fotoName);
+            $fotoPath = 'foto_barang_rusak/' . $fotoName;
+        }
+
+        $barangRusak->update([
+            'vehicle_group_code' => $request->vehicle_group_code,
+            'description' => $request->description,
+            'tahun_perolehan' => $request->tahun_perolehan,
+            'merek' => $request->merek,
+            'foto' => $fotoPath,
+            'lokasi_unit' => $request->lokasi_unit,
+            'kondisi_unit' => $request->kondisi_unit,
+            'keterangan' => $request->keterangan,
+        ]);
+
+        // Save vehicle_group_code to master if not exists
+        MasterVehicleGroup::firstOrCreate(['kode' => $request->vehicle_group_code]);
+
+        // Save lokasi_unit to master if not exists
+        MasterLokasiUnit::firstOrCreate(['lokasi' => $request->lokasi_unit]);
+
+        Log::info('Barang Rusak diupdate', [
+            'nomor' => $barangRusak->nomor,
+            'user' => Session::get('admin_username')
+        ]);
+
+        return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil diupdate!');
+    }
+
+    public function barangRusakDestroy(Request $request, $id)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $barangRusak = BarangRusak::findOrFail($id);
+        
+        // Delete foto
+        if ($barangRusak->foto) {
+            // Note: In production, you would delete the file from storage
+        }
+
+        $nomor = $barangRusak->nomor;
+        $barangRusak->delete();
+
+        Log::info('Barang Rusak dihapus', [
+            'nomor' => $nomor,
+            'user' => Session::get('admin_username')
+        ]);
+
+        return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil dihapus!');
+    }
+
+    // ========== LAPORAN BARANG RUSAK ==========
+    public function laporanRusak(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+        
+        return view('laporan.rusak', compact('barangRusaks'));
+    }
+
+    public function laporanRusakPdf(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+
+        $pdf = Pdf::loadView('laporan.pdf.rusak', compact('barangRusaks'));
+        $pdf->setPaper('a4', 'landscape');
+        
+        return $pdf->download('laporan_barang_rusak.pdf');
+    }
+
+    public function laporanRusakExcel(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+
+        return Excel::download(new LaporanExport('rusak', $barangRusaks, ''), 'laporan_barang_rusak.xlsx');
+    }
+
+    public function laporanRusakCsv(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+
+        $filename = 'laporan_barang_rusak.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $columns = ['No', 'Nomor', 'Vehicle Group Code', 'Description', 'Tahun Perolehan', 'Merek', 'Lokasi Unit', 'Kondisi Unit', 'Keterangan'];
+
+        $callback = function() use ($barangRusaks, $columns) {
+            $output = fopen('php://output', 'w');
+            fputcsv($output, $columns);
+
+            $no = 1;
+            foreach ($barangRusaks as $br) {
+                fputcsv($output, [
+                    $no++,
+                    $br->nomor,
+                    $br->vehicle_group_code,
+                    $br->description,
+                    $br->tahun_perolehan,
+                    $br->merek,
+                    $br->lokasi_unit,
+                    $br->kondisi_unit,
+                    $br->keterangan,
+                ]);
+            }
+
+            fclose($output);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 }

@@ -754,6 +754,13 @@
                     <span>Barang Keluar</span>
                 </a>
             </li>
+
+            <li class="sidebar-menu-item menu-rusak">
+                <a class="{{ Request::is('barang-rusak*') ? 'active' : '' }}" href="{{ route('barang.rusak') }}">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <span>Barang Rusak</span>
+                </a>
+            </li>
             
             <li class="menu-divider"></li>
             
@@ -768,6 +775,13 @@
                 <a class="{{ Request::is('laporan-rak*') ? 'active' : '' }}" href="{{ route('laporan.rak') }}">
                     <i class="bi bi-boxes"></i>
                     <span>Laporan per Rak</span>
+                </a>
+            </li>
+
+            <li class="sidebar-menu-item menu-laporan">
+                <a class="{{ Request::is('laporan-rusak*') ? 'active' : '' }}" href="{{ route('laporan.rusak') }}">
+                    <i class="bi bi-file-earmark-x"></i>
+                    <span>Laporan Barang Rusak</span>
                 </a>
             </li>
         </ul>

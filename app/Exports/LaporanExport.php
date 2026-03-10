@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\BarangMasuk;
 use App\Models\BarangKeluar;
+use App\Models\BarangRusak;
 use App\Models\MasterBarang;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -79,6 +80,22 @@ class LaporanExport implements FromCollection, WithHeadings
                 ];
             });
             return $data;
+        } elseif ($this->jenis === 'rusak') {
+            // Laporan barang rusak
+            $data = $this->bulan->map(function ($item, $index) {
+                return [
+                    'No' => $index + 1,
+                    'Nomor' => $item->nomor,
+                    'Vehicle Group Code' => $item->vehicle_group_code,
+                    'Description' => $item->description ?? '-',
+                    'Tahun Perolehan' => $item->tahun_perolehan,
+                    'Merek' => $item->merek,
+                    'Lokasi Unit' => $item->lokasi_unit,
+                    'Kondisi Unit' => $item->kondisi_unit == 'hidup' ? 'Hidup' : 'Mati',
+                    'Keterangan' => $item->keterangan ?? '-',
+                ];
+            });
+            return $data;
         } else {
             // Gabungan
             $masuks = BarangMasuk::with('masterBarang')
@@ -123,6 +140,8 @@ class LaporanExport implements FromCollection, WithHeadings
             return ['Tanggal', 'Jenis', 'Barcode', 'Nama Barang', 'Jumlah', 'Keterangan'];
         } elseif ($this->jenis === 'rak') {
             return ['No', 'Rak', 'Barcode', 'Nama Barang', 'Stok', 'Status'];
+        } elseif ($this->jenis === 'rusak') {
+            return ['No', 'Nomor', 'Vehicle Group Code', 'Description', 'Tahun Perolehan', 'Merek', 'Lokasi Unit', 'Kondisi Unit', 'Keterangan'];
         }
         return ['No', 'Tanggal', 'Barcode', 'Nama Barang', 'Jumlah', 'Keterangan'];
     }

@@ -63,6 +63,18 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::get('/laporan-rak/excel', [InventoriController::class, 'laporanRakExcel'])->name('laporan.rak.excel');
     Route::get('/laporan-rak/csv', [InventoriController::class, 'laporanRakCsv'])->name('laporan.rak.csv');
 
+    // Barang Rusak
+    Route::get('/barang-rusak', [InventoriController::class, 'barangRusak'])->name('barang.rusak');
+    Route::post('/barang-rusak', [InventoriController::class, 'barangRusakStore'])->name('barang.rusak.store');
+    Route::put('/barang-rusak/{id}', [InventoriController::class, 'barangRusakUpdate'])->name('barang.rusak.update');
+    Route::delete('/barang-rusak/{id}', [InventoriController::class, 'barangRusakDestroy'])->name('barang.rusak.destroy');
+
+    // Laporan Barang Rusak
+    Route::get('/laporan-rusak', [InventoriController::class, 'laporanRusak'])->name('laporan.rusak');
+    Route::get('/laporan-rusak/pdf', [InventoriController::class, 'laporanRusakPdf'])->name('laporan.rusak.pdf');
+    Route::get('/laporan-rusak/excel', [InventoriController::class, 'laporanRusakExcel'])->name('laporan.rusak.excel');
+    Route::get('/laporan-rusak/csv', [InventoriController::class, 'laporanRusakCsv'])->name('laporan.rusak.csv');
+
     // Search API
     Route::get('/search-barang', [InventoriController::class, 'searchBarang'])->name('search.barang');
 });
