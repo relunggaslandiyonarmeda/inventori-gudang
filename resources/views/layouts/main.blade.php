@@ -755,6 +755,13 @@
                 </a>
             </li>
 
+            <li class="sidebar-menu-item menu-retur">
+                <a class="{{ Request::is('barang-retur*') ? 'active' : '' }}" href="{{ route('barang.retur') }}">
+                    <i class="bi bi-arrow-return-left"></i>
+                    <span>Barang Retur</span>
+                </a>
+            </li>
+
             <li class="sidebar-menu-item menu-rusak">
                 <a class="{{ Request::is('barang-rusak*') ? 'active' : '' }}" href="{{ route('barang.rusak') }}">
                     <i class="bi bi-exclamation-triangle"></i>

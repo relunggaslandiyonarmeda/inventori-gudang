@@ -45,6 +45,7 @@ class LaporanExport implements FromCollection, WithHeadings
             $data = BarangKeluar::with('masterBarang')
                 ->whereMonth('tanggal', $this->bulan)
                 ->whereYear('tanggal', $this->tahun)
+                ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
                 ->orderBy('tanggal', 'asc')
                 ->get()
                 ->map(function ($item, $index) {
@@ -117,6 +118,7 @@ class LaporanExport implements FromCollection, WithHeadings
             $keluars = BarangKeluar::with('masterBarang')
                 ->whereMonth('tanggal', $this->bulan)
                 ->whereYear('tanggal', $this->tahun)
+                ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
                 ->orderBy('tanggal', 'asc')
                 ->get()
                 ->map(function ($item) {

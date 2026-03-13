@@ -8,6 +8,7 @@ use App\Models\BarangKeluar;
 use App\Models\BarangRusak;
 use App\Models\MasterVehicleGroup;
 use App\Models\MasterLokasiUnit;
+use App\Models\BarangRetur;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -43,13 +44,22 @@ class InventoriController extends Controller
     }
 
     // ========== MASTER BARANG ==========
-    public function masterBarang()
+    public function masterBarang(Request $request)
     {
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangs = MasterBarang::orderBy('created_at', 'desc')->paginate(10);
-        return view('master_barang.index', compact('barangs'));
+        $search = $request->input('search');
+        
+        $barangs = MasterBarang::when($search, function($query) use ($search) {
+                $query->where('barcode', 'like', '%' . $search . '%')
+                      ->orWhere('nama_barang', 'like', '%' . $search . '%')
+                      ->orWhere('lokasi_rak', 'like', '%' . $search . '%');
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+            
+        return view('master_barang.index', compact('barangs', 'search'));
     }
 
     public function masterBarangStore(Request $request)
@@ -300,6 +310,115 @@ class InventoriController extends Controller
         }
     }
 
+    // ========== BARANG RETUR ==========
+    public function barangRetur(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $search = $request->search ?? '';
+        
+        // Get barang_keluar that haven't been fully retured
+        $barangKeluar = BarangKeluar::with('masterBarang')
+            ->where(function($query) use ($search) {
+                if ($search) {
+                    $query->where('barcode', 'like', "%$search%")
+                          ->orWhereHas('masterBarang', function($q) use ($search) {
+                              $q->where('nama_barang', 'like', "%$search%");
+                          });
+                }
+            })
+            ->orderBy('tanggal', 'desc')
+            ->get();
+
+        // Get all retur records
+        $retur = BarangRetur::with(['barangKeluar.masterBarang', 'masterBarang'])
+            ->orderBy('tanggal_retur', 'desc')
+            ->get();
+
+        // Calculate remaining quantity for each barang_keluar
+        $remainingQty = [];
+        foreach ($barangKeluar as $bk) {
+            $totalRetur = BarangRetur::where('barang_keluar_id', $bk->id)->sum('jumlah_retur');
+            $remainingQty[$bk->id] = $bk->jumlah_keluar - $totalRetur;
+        }
+
+        return view('barang_retur.index', compact('barangKeluar', 'retur', 'remainingQty', 'search'));
+    }
+
+    public function barangReturStore(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $request->validate([
+            'barang_keluar_id' => 'required|exists:barang_keluar,id',
+            'jumlah_retur' => 'required|integer|min:1',
+            'tanggal_retur' => 'required|date',
+            'keterangan' => 'nullable|string',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request) {
+                // Get barang_keluar record
+                $barangKeluar = BarangKeluar::findOrFail($request->barang_keluar_id);
+                
+                // Calculate how many have already been retured
+                $totalRetur = BarangRetur::where('barang_keluar_id', $request->barang_keluar_id)
+                    ->sum('jumlah_retur');
+                
+                $remainingQty = $barangKeluar->jumlah_keluar - $totalRetur;
+                
+                // Validate retur quantity
+                if ($request->jumlah_retur > $remainingQty) {
+                    throw new \Exception('Jumlah retur tidak boleh melebihi sisa yang belum diretur! Sisa: ' . $remainingQty);
+                }
+
+                // Save retur record
+                BarangRetur::create([
+                    'barang_keluar_id' => $request->barang_keluar_id,
+                    'barcode' => $barangKeluar->barcode,
+                    'jumlah_retur' => $request->jumlah_retur,
+                    'tanggal_retur' => $request->tanggal_retur,
+                    'keterangan' => $request->keterangan,
+                ]);
+
+                // Update stok di master_barang (tambah stok)
+                $barang = MasterBarang::findOrFail($barangKeluar->barcode);
+                $barang->stok = $barang->stok + $request->jumlah_retur;
+                $barang->save();
+            });
+
+            return redirect()->route('barang.retur')->with('success', 'Barang retur berhasil dicatat!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function barangReturDestroy($id)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        try {
+            DB::transaction(function () use ($id) {
+                $retur = BarangRetur::findOrFail($id);
+                
+                // Kurangi stok di master_barang
+                $barang = MasterBarang::findOrFail($retur->barcode);
+                $barang->stok = $barang->stok - $retur->jumlah_retur;
+                $barang->save();
+                
+                // Delete retur record
+                $retur->delete();
+            });
+
+            return redirect()->route('barang.retur')->with('success', 'Retur berhasil dihapus!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     // ========== LAPORAN ==========
     public function laporan()
     {
@@ -414,6 +533,7 @@ class InventoriController extends Controller
         $barangKeluars = BarangKeluar::with('masterBarang')
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
+            ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -433,6 +553,7 @@ class InventoriController extends Controller
         $barangKeluars = BarangKeluar::with('masterBarang')
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
+            ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -464,6 +585,7 @@ class InventoriController extends Controller
         $barangKeluars = BarangKeluar::with('masterBarang')
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
+            ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -513,6 +635,7 @@ class InventoriController extends Controller
         $barangKeluars = BarangKeluar::with('masterBarang')
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
+            ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -539,6 +662,7 @@ class InventoriController extends Controller
         $barangKeluars = BarangKeluar::with('masterBarang')
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
+            ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
@@ -577,6 +701,7 @@ class InventoriController extends Controller
         $barangKeluars = BarangKeluar::with('masterBarang')
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
+            ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 

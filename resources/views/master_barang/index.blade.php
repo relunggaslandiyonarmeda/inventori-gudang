@@ -167,10 +167,18 @@
                     Daftar Semua Barang
                 </h5>
                 <div class="d-flex gap-2">
-                    <div class="input-group input-group-sm" style="width: 200px;">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" id="search-table" placeholder="Cari barang..." class="form-control">
-                    </div>
+                    <form action="{{ route('master.barang') }}" method="GET" class="d-flex">
+                        <div class="input-group input-group-sm" style="width: 250px;">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari barcode, nama barang, atau rak..." class="form-control">
+                            @if(isset($search) && $search)
+                            <a href="{{ route('master.barang') }}" class="btn btn-outline-secondary" title="Clear">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                            @endif
+                            <button type="submit" class="btn btn-primary">Cari</button>
+                        </div>
+                    </form>
                 </div>
             </div>
             <div class="card-body p-0">
@@ -338,11 +346,13 @@ document.addEventListener('DOMContentLoaded', function() {
     editModal = new bootstrap.Modal(document.getElementById('editModal'));
     
     // Check if this is a pagination request (has page parameter or hash is #list)
+    // OR if there's a search parameter - in all these cases, show the Daftar Barang tab
     const urlParams = new URLSearchParams(window.location.search);
     const hasPage = urlParams.has('page');
+    const hasSearch = urlParams.has('search');
     const hash = window.location.hash;
     
-    if (hasPage || hash === '#list') {
+    if (hasPage || hasSearch || hash === '#list') {
         // Switch to Daftar Barang tab
         const listTabBtn = document.getElementById('list-tab-btn');
         const listTab = document.getElementById('list');
@@ -487,23 +497,5 @@ function editBarang(barcode, nama, stok, rak) {
     editModal.show();
 }
 
-// Search table
-document.getElementById('search-table').addEventListener('keyup', function() {
-    let search = this.value.toLowerCase();
-    let table = document.getElementById('barang-table');
-    let rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
-    
-    for (let i = 0; i < rows.length; i++) {
-        let barcode = rows[i].cells[0].textContent.toLowerCase();
-        let nama = rows[i].cells[1].textContent.toLowerCase();
-        let rak = rows[i].cells[3].textContent.toLowerCase();
-        
-        if (barcode.includes(search) || nama.includes(search) || rak.includes(search)) {
-            rows[i].style.display = "";
-        } else {
-            rows[i].style.display = "none";
-        }
-    }
-});
 </script>
 @endsection

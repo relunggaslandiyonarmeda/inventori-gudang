@@ -26,4 +26,9 @@ class BarangKeluar extends Model
     {
         return $this->belongsTo(MasterBarang::class, 'barcode', 'barcode');
     }
+    
+    public function retur()
+    {
+        return $this->hasMany(BarangRetur::class, 'barang_keluar_id');
+    }
 }

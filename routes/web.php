@@ -36,6 +36,11 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::post('/barang-keluar', [InventoriController::class, 'barangKeluarStore'])->name('barang.keluar.store');
     Route::post('/barang-keluar-manual', [InventoriController::class, 'barangKeluarManual'])->name('barang.keluar.manual');
 
+    // Barang Retur
+    Route::get('/barang-retur', [InventoriController::class, 'barangRetur'])->name('barang.retur');
+    Route::post('/barang-retur', [InventoriController::class, 'barangReturStore'])->name('barang.retur.store');
+    Route::delete('/barang-retur/{id}', [InventoriController::class, 'barangReturDestroy'])->name('barang.retur.destroy');
+
     // Laporan
     Route::get('/laporan', [InventoriController::class, 'laporan'])->name('laporan.index');
 
