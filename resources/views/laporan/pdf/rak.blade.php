@@ -30,32 +30,37 @@
             color: #666;
         }
         .summary {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding: 10px;
+            display: block;
+            margin-bottom: 25px;
+            padding: 15px;
             background: #f8f9fa;
             border-radius: 5px;
         }
         .summary-item {
-            text-align: center;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        .summary-item:last-child {
+            margin-bottom: 0;
         }
         .summary-item .label {
-            font-size: 9pt;
-            color: #666;
+            font-size: 10pt;
+            color: #333;
+            display: inline-block;
+            width: 120px;
         }
         .summary-item .value {
-            font-size: 14pt;
+            font-size: 11pt;
             font-weight: bold;
             color: #4f46e5;
         }
         .rak-section {
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
         .rak-title {
             background: #4f46e5;
             color: white;
-            padding: 8px 12px;
+            padding: 10px 12px;
             font-size: 12pt;
             font-weight: bold;
             margin-bottom: 10px;
@@ -67,7 +72,7 @@
         }
         th, td {
             border: 1px solid #ddd;
-            padding: 8px;
+            padding: 10px 8px;
             text-align: left;
         }
         th {
@@ -126,16 +131,16 @@
 
     <div class="summary">
         <div class="summary-item">
-            <div class="label">Total Rak</div>
-            <div class="value">{{ $barangs->count() }}</div>
+            <span class="label">Total Rak =</span>
+            <span class="value">{{ $barangs->count() }}</span>
         </div>
         <div class="summary-item">
-            <div class="label">Total Barang</div>
-            <div class="value">{{ number_format($totalBarang) }}</div>
+            <span class="label">Total Barang =</span>
+            <span class="value">{{ number_format($totalBarang) }}</span>
         </div>
         <div class="summary-item">
-            <div class="label">Total Stok</div>
-            <div class="value">{{ number_format($totalStok) }}</div>
+            <span class="label">Total Stok =</span>
+            <span class="value">{{ number_format($totalStok) }}</span>
         </div>
     </div>
 
@@ -151,7 +156,6 @@
                     <th>Barcode</th>
                     <th>Nama Barang</th>
                     <th class="text-center">Stok</th>
-                    <th class="text-center">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -162,15 +166,6 @@
                     <td><code>{{ $item->barcode }}</code></td>
                     <td>{{ $item->nama_barang }}</td>
                     <td class="text-center">{{ number_format($item->stok) }}</td>
-                    <td class="text-center">
-                        @if($item->stok > 10)
-                        <span class="badge badge-success">Tersedia</span>
-                        @elseif($item->stok > 0)
-                        <span class="badge badge-warning">Terbatas</span>
-                        @else
-                        <span class="badge badge-danger">Habis</span>
-                        @endif
-                    </td>
                 </tr>
                 @endforeach
             </tbody>
@@ -178,7 +173,6 @@
                 <tr style="background: #f8f9fa;">
                     <td colspan="3" class="text-right"><strong>Total Rak {{ $rakName }}:</strong></td>
                     <td class="text-center"><strong>{{ number_format($items->sum('stok')) }}</strong></td>
-                    <td></td>
                 </tr>
             </tfoot>
         </table>

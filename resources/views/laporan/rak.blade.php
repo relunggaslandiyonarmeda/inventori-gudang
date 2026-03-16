@@ -60,49 +60,20 @@
 </div>
 
 <!-- Stats -->
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="card stat-card" style="border-left: 4px solid #4f46e5;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <p class="stat-label mb-1">Total Rak</p>
-                        <h3 class="stat-value mb-0 text-primary">{{ $barangs->count() }}</h3>
-                    </div>
-                    <div class="stat-icon primary">
-                        <i class="bi bi-box-seam"></i>
-                    </div>
-                </div>
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex gap-4 flex-wrap">
+            <div class="text-start">
+                <p class="text-muted mb-1">Total Rak</p>
+                <h4 class="mb-0 text-primary">{{ $barangs->count() }}</h4>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card stat-card" style="border-left: 4px solid #10b981;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <p class="stat-label mb-1">Total Barang</p>
-                        <h3 class="stat-value mb-0 text-success">{{ number_format($totalBarang) }}</h3>
-                    </div>
-                    <div class="stat-icon success">
-                        <i class="bi bi-boxes"></i>
-                    </div>
-                </div>
+            <div class="text-start">
+                <p class="text-muted mb-1">Total Barang</p>
+                <h4 class="mb-0 text-success">{{ number_format($totalBarang) }}</h4>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card stat-card" style="border-left: 4px solid #f59e0b;">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <p class="stat-label mb-1">Total Stok</p>
-                        <h3 class="stat-value mb-0 text-warning">{{ number_format($totalStok) }}</h3>
-                    </div>
-                    <div class="stat-icon warning">
-                        <i class="bi bi-stack"></i>
-                    </div>
-                </div>
+            <div class="text-start">
+                <p class="text-muted mb-1">Total Stok</p>
+                <h4 class="mb-0 text-warning">{{ number_format($totalStok) }}</h4>
             </div>
         </div>
     </div>
@@ -133,7 +104,6 @@
                         <th>Barcode</th>
                         <th>Nama Barang</th>
                         <th class="text-center">Stok</th>
-                        <th class="text-center">Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -152,21 +122,6 @@
                                 {{ number_format($item->stok) }}
                             </span>
                         </td>
-                        <td class="text-center">
-                            @if($item->stok > 10)
-                            <span class="badge bg-success">
-                                <i class="bi bi-check-circle me-1"></i>Tersedia
-                            </span>
-                            @elseif($item->stok > 0)
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-exclamation-triangle me-1"></i>Terbatas
-                            </span>
-                            @else
-                            <span class="badge bg-danger">
-                                <i class="bi bi-x-circle me-1"></i>Habis
-                            </span>
-                            @endif
-                        </td>
                     </tr>
                     @endforeach
                 </tbody>
@@ -178,7 +133,6 @@
                                 {{ number_format($items->sum('stok')) }}
                             </span>
                         </td>
-                        <td></td>
                     </tr>
                 </tfoot>
             </table>
