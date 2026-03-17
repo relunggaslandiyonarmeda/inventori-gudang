@@ -50,16 +50,24 @@ class InventoriController extends Controller
         if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
+        $rak = $request->input('rak');
         
         $barangs = MasterBarang::when($search, function($query) use ($search) {
                 $query->where('barcode', 'like', '%' . $search . '%')
                       ->orWhere('nama_barang', 'like', '%' . $search . '%')
                       ->orWhere('lokasi_rak', 'like', '%' . $search . '%');
             })
-            ->orderBy('created_at', 'desc')
+            ->when($rak, function($query) use ($rak) {
+                $query->where('lokasi_rak', $rak);
+            })
+            ->orderBy('lokasi_rak', 'asc')
+            ->orderBy('nama_barang', 'asc')
             ->paginate(10);
+        
+        // Get available racks for filter
+        $raks = MasterBarang::select('lokasi_rak')->distinct()->orderBy('lokasi_rak', 'asc')->pluck('lokasi_rak');
             
-        return view('master_barang.index', compact('barangs', 'search'));
+        return view('master_barang.index', compact('barangs', 'search', 'rak', 'raks'));
     }
 
     public function masterBarangStore(Request $request)

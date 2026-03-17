@@ -167,11 +167,19 @@
                     Daftar Semua Barang
                 </h5>
                 <div class="d-flex gap-2">
-                    <form action="{{ route('master.barang') }}" method="GET" class="d-flex">
+                    <form action="{{ route('master.barang') }}" method="GET" class="d-flex flex-wrap gap-2">
+                        <!-- Filter Rak -->
+                        <select name="rak" class="form-select form-select-sm" style="width: 120px;" onchange="this.form.submit()">
+                            <option value="">Semua Rak</option>
+                            @foreach($raks as $r)
+                                <option value="{{ $r }}" {{ $rak == $r ? 'selected' : '' }}>Rak {{ $r }}</option>
+                            @endforeach
+                        </select>
+                        <!-- Search -->
                         <div class="input-group input-group-sm" style="width: 250px;">
                             <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari barcode, nama barang, atau rak..." class="form-control">
-                            @if(isset($search) && $search)
+                            <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Cari barcode atau nama..." class="form-control">
+                            @if(isset($search) && $search || isset($rak) && $rak)
                             <a href="{{ route('master.barang') }}" class="btn btn-outline-secondary" title="Clear">
                                 <i class="bi bi-x-lg"></i>
                             </a>
