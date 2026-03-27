@@ -21,6 +21,7 @@
 
 <!-- Statistics Cards -->
 <div class="row g-4 mb-4">
+    @if(Session::get('user_role') === 'admin')
     <!-- Total Barang -->
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card stat-card h-100">
@@ -40,6 +41,7 @@
             </div>
         </div>
     </div>
+    @endif
 
     <!-- Total Stok -->
     <div class="col-12 col-sm-6 col-xl-3">
@@ -111,6 +113,7 @@
         </h5>
     </div>
     
+    @if(Session::get('user_role') === 'admin')
     <div class="col-12 col-md-6 col-xl-3">
         <a href="{{ route('master.barang') }}" class="text-decoration-none">
             <div class="card h-100" style="border-left: 4px solid #4f46e5;">
@@ -128,6 +131,7 @@
             </div>
         </a>
     </div>
+    @endif
 
     <div class="col-12 col-md-6 col-xl-3">
         <a href="{{ route('barang.masuk') }}" class="text-decoration-none">
@@ -200,12 +204,14 @@
                             Pastikan barcode barang terdaftar di Master Barang sebelum melakukan transaksi masuk atau keluar.
                         </p>
                     </div>
+                    @if(Session::get('user_role') === 'admin')
                     <div class="col-md-4 text-md-end mt-3 mt-md-0">
                         <a href="{{ route('master.barang') }}" class="btn btn-light">
                             <i class="bi bi-plus-circle me-1"></i>
                             Tambah Barang Baru
                         </a>
                     </div>
+                    @endif
                 </div>
             </div>
         </div>

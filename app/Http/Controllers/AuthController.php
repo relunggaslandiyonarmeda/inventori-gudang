@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -16,7 +18,7 @@ class AuthController extends Controller
     }
 
     /**
-     * Proses login admin
+     * Proses login - supports both admin and database users
      */
     public function login(Request $request)
     {
@@ -25,21 +27,40 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Login admin using environment variables
-        $adminUsername = config('app.admin_username', 'admin');
-        $adminPassword = config('app.admin_password', 'admin123');
-        
-        if ($request->username === $adminUsername && $request->password === $adminPassword) {
-            // Regenerate session ID to prevent session fixation attacks
+        $username = $request->input('username');
+        $password = $request->input('password');
+
+        // ===== ADMIN LOGIN (hardcoded) =====
+        if ($username === 'admin' && $password === 'admin123') {
             $request->session()->regenerate();
             
-            Session::put('admin_logged_in', true);
-            Session::put('admin_username', 'admin');
+            Session::put('user_logged_in', true);
+            Session::put('user_id', 'admin');
+            Session::put('user_name', 'Administrator');
+            Session::put('user_username', 'admin');
+            Session::put('user_role', 'admin');
             
-            // If "remember me" is checked, set a long-lived cookie
             if ($request->has('remember')) {
-                // Set cookie for 1 year (525600 minutes)
-                cookie()->queue('admin_remember', true, 525600);
+                cookie()->queue('user_remember', 'admin', 525600);
+            }
+            
+            return redirect()->route('dashboard');
+        }
+
+        // ===== DATABASE USER LOGIN =====
+        $user = User::where('username', $username)->first();
+        
+        if ($user && Hash::check($password, $user->password)) {
+            $request->session()->regenerate();
+            
+            Session::put('user_logged_in', true);
+            Session::put('user_id', $user->id);
+            Session::put('user_name', $user->name);
+            Session::put('user_username', $user->username);
+            Session::put('user_role', $user->role);
+            
+            if ($request->has('remember')) {
+                cookie()->queue('user_remember', $user->id, 525600);
             }
             
             return redirect()->route('dashboard');
@@ -49,22 +70,21 @@ class AuthController extends Controller
     }
 
     /**
-     * Logout admin
+     * Logout user
      */
     public function logout()
     {
-        // Clear the remember me cookie
-        cookie()->queue(cookie()->forget('admin_remember'));
+        cookie()->queue(cookie()->forget('user_remember'));
         
         Session::flush();
         return redirect()->route('login');
     }
 
     /**
-     * Cek apakah admin sudah login
+     * Cek apakah user sudah login
      */
     public function checkAuth()
     {
-        return Session::get('admin_logged_in', false);
+        return Session::get('user_logged_in', false);
     }
 }

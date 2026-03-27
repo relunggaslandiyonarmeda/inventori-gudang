@@ -9,9 +9,11 @@ use App\Models\BarangRusak;
 use App\Models\MasterVehicleGroup;
 use App\Models\MasterLokasiUnit;
 use App\Models\BarangRetur;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -23,7 +25,7 @@ class InventoriController extends Controller
     // ========== MIDDLEWARE CHECK ==========
     private function checkAuth()
     {
-        if (!Session::get('admin_logged_in')) {
+        if (!Session::get('user_logged_in')) {
             return redirect()->route('login');
         }
         return null;
@@ -89,7 +91,7 @@ class InventoriController extends Controller
             'nama_barang' => $barang->nama_barang,
             'stok' => $barang->stok,
             'lokasi_rak' => $barang->lokasi_rak,
-            'user' => Session::get('admin_username')
+            'user' => Session::get('user_username')
         ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil ditambahkan!');
@@ -123,7 +125,7 @@ class InventoriController extends Controller
             'nama_barang' => $barang->nama_barang,
             'stok' => $barang->stok,
             'lokasi_rak' => $barang->lokasi_rak,
-            'user' => Session::get('admin_username')
+            'user' => Session::get('user_username')
         ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil diupdate!');
@@ -140,7 +142,7 @@ class InventoriController extends Controller
         Log::warning('Barang dihapus', [
             'barcode' => $barcode,
             'nama_barang' => $barang->nama_barang,
-            'user' => Session::get('admin_username')
+            'user' => Session::get('user_username')
         ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil dihapus!');
@@ -183,7 +185,7 @@ class InventoriController extends Controller
                     'nama_barang' => $barang->nama_barang,
                     'jumlah_masuk' => $request->jumlah_masuk,
                     'tanggal' => $request->tanggal,
-                    'user' => Session::get('admin_username')
+                    'user' => Session::get('user_username')
                 ]);
             });
 
@@ -269,7 +271,7 @@ class InventoriController extends Controller
                     'nama_barang' => $barang->nama_barang,
                     'jumlah_keluar' => $request->jumlah_keluar,
                     'tanggal' => $request->tanggal,
-                    'user' => Session::get('admin_username')
+                    'user' => Session::get('user_username')
                 ]);
             });
 
@@ -966,7 +968,7 @@ class InventoriController extends Controller
             'nomor' => $barangRusak->nomor,
             'vehicle_group_code' => $barangRusak->vehicle_group_code,
             'merek' => $barangRusak->merek,
-            'user' => Session::get('admin_username')
+            'user' => Session::get('user_username')
         ]);
 
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil ditambahkan!');
@@ -1034,7 +1036,7 @@ class InventoriController extends Controller
 
         Log::info('Barang Rusak diupdate', [
             'nomor' => $barangRusak->nomor,
-            'user' => Session::get('admin_username')
+            'user' => Session::get('user_username')
         ]);
 
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil diupdate!');
@@ -1057,7 +1059,7 @@ class InventoriController extends Controller
 
         Log::info('Barang Rusak dihapus', [
             'nomor' => $nomor,
-            'user' => Session::get('admin_username')
+            'user' => Session::get('user_username')
         ]);
 
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil dihapus!');
@@ -1135,5 +1137,139 @@ class InventoriController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    // ========== USER MANAGEMENT ==========
+    public function users(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        // Only admin can access user management
+        if (Session::get('user_role') !== 'admin') {
+            return redirect()->route('dashboard')->with('error', 'Akses ditolak! Hanya admin yang dapat mengakses halaman ini.');
+        }
+
+        $search = $request->input('search');
+        $role = $request->input('role');
+
+        $users = User::when($search, function($query) use ($search) {
+                $query->where('name', 'like', '%' . $search . '%')
+                      ->orWhere('username', 'like', '%' . $search . '%')
+                      ->orWhere('email', 'like', '%' . $search . '%');
+            })
+            ->when($role, function($query) use ($role) {
+                $query->where('role', $role);
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
+
+        return view('users.index', compact('users', 'search', 'role'));
+    }
+
+    public function usersStore(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        // Only admin can create users
+        if (Session::get('user_role') !== 'admin') {
+            return redirect()->route('dashboard')->with('error', 'Akses ditolak!');
+        }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username',
+            'email' => 'nullable|email|unique:users,email',
+            'password' => 'required|string|min:6|confirmed',
+            'role' => 'required|in:admin,user',
+        ]);
+
+        User::create([
+            'name' => $request->name,
+            'username' => $request->username,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role' => $request->role,
+        ]);
+
+        Log::info('User created', [
+            'name' => $request->name,
+            'username' => $request->username,
+            'role' => $request->role,
+            'created_by' => Session::get('user_username')
+        ]);
+
+        return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
+    }
+
+    public function usersUpdate(Request $request, $id)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        // Only admin can update users
+        if (Session::get('user_role') !== 'admin') {
+            return redirect()->route('dashboard')->with('error', 'Akses ditolak!');
+        }
+
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'username' => 'required|string|max:255|unique:users,username,' . $id,
+            'email' => 'nullable|email|unique:users,email,' . $id,
+            'password' => 'nullable|string|min:6|confirmed',
+            'role' => 'required|in:admin,user',
+        ]);
+
+        $user->name = $request->name;
+        $user->username = $request->username;
+        $user->email = $request->email;
+        $user->role = $request->role;
+
+        if ($request->password) {
+            $user->password = Hash::make($request->password);
+        }
+
+        $user->save();
+
+        Log::info('User updated', [
+            'id' => $id,
+            'name' => $request->name,
+            'username' => $request->username,
+            'role' => $request->role,
+            'updated_by' => Session::get('user_username')
+        ]);
+
+        return redirect()->route('users.index')->with('success', 'User berhasil diperbarui!');
+    }
+
+    public function usersDestroy($id)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        // Only admin can delete users
+        if (Session::get('user_role') !== 'admin') {
+            return redirect()->route('dashboard')->with('error', 'Akses ditolak!');
+        }
+
+        // Prevent admin from deleting themselves
+        if (Session::get('user_id') == $id) {
+            return redirect()->route('users.index')->with('error', 'Tidak dapat menghapus akun sendiri!');
+        }
+
+        $user = User::findOrFail($id);
+        $userName = $user->name;
+        $user->delete();
+
+        Log::info('User deleted', [
+            'id' => $id,
+            'name' => $userName,
+            'deleted_by' => Session::get('user_username')
+        ]);
+
+        return redirect()->route('users.index')->with('success', 'User berhasil dihapus!');
     }
 }

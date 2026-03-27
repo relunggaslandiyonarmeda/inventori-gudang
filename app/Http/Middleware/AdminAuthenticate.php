@@ -17,15 +17,32 @@ class AdminAuthenticate
     public function handle(Request $request, Closure $next): Response
     {
         // Check if user is logged in via session
-        if (Session::get('admin_logged_in')) {
+        if (Session::get('user_logged_in')) {
             return $next($request);
         }
         
         // Check if "remember me" cookie exists
-        if ($request->cookie('admin_remember')) {
+        $remember = $request->cookie('user_remember');
+        if ($remember) {
             // Restore session
-            Session::put('admin_logged_in', true);
-            Session::put('admin_username', 'admin');
+            Session::put('user_logged_in', true);
+            
+            // Restore admin session
+            if ($remember === 'admin') {
+                Session::put('user_id', 'admin');
+                Session::put('user_name', 'Administrator');
+                Session::put('user_username', 'admin');
+                Session::put('user_role', 'admin');
+            } else {
+                // Restore database user session
+                $user = \App\Models\User::find($remember);
+                if ($user) {
+                    Session::put('user_id', $user->id);
+                    Session::put('user_name', $user->name);
+                    Session::put('user_username', $user->username);
+                    Session::put('user_role', $user->role);
+                }
+            }
             return $next($request);
         }
 

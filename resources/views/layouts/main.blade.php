@@ -690,7 +690,7 @@
     </style>
 </head>
 <body>
-    @if(Session::get('admin_logged_in'))
+    @if(Session::get('user_logged_in'))
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-fixed">
         <div class="container-fluid">
@@ -702,7 +702,12 @@
                 <span>Inventori Gudang</span>
             </a>
             <div class="user-info">
-                <span class="user-name d-none d-md-inline">{{ Session::get('admin_username') }}</span>
+                <span class="user-name d-none d-md-inline">{{ Session::get('user_name') }}</span>
+                @if(Session::get('user_role') === 'admin')
+                <span class="badge bg-danger ms-1">Admin</span>
+                @else
+                <span class="badge bg-info ms-1">User</span>
+                @endif
                 <div class="user-avatar">
                     <i class="bi bi-person"></i>
                 </div>
@@ -734,12 +739,14 @@
                 </a>
             </li>
             
+            @if(Session::get('user_role') === 'admin')
             <li class="sidebar-menu-item menu-master">
                 <a class="{{ Request::is('master-barang*') ? 'active' : '' }}" href="{{ route('master.barang') }}">
                     <i class="bi bi-box-seam"></i>
                     <span>Master Barang</span>
                 </a>
             </li>
+            @endif
             
             <li class="sidebar-menu-item menu-masuk">
                 <a class="{{ Request::is('barang-masuk*') ? 'active' : '' }}" href="{{ route('barang.masuk') }}">
@@ -755,6 +762,7 @@
                 </a>
             </li>
 
+            @if(Session::get('user_role') === 'admin')
             <li class="sidebar-menu-item menu-retur">
                 <a class="{{ Request::is('barang-retur*') ? 'active' : '' }}" href="{{ route('barang.retur') }}">
                     <i class="bi bi-arrow-return-left"></i>
@@ -768,6 +776,7 @@
                     <span>Barang Rusak</span>
                 </a>
             </li>
+            @endif
             
             <li class="menu-divider"></li>
             
@@ -778,6 +787,7 @@
                 </a>
             </li>
             
+            @if(Session::get('user_role') === 'admin')
             <li class="sidebar-menu-item menu-laporan">
                 <a class="{{ Request::is('laporan-rak*') ? 'active' : '' }}" href="{{ route('laporan.rak') }}">
                     <i class="bi bi-boxes"></i>
@@ -791,6 +801,16 @@
                     <span>Laporan Barang Rusak</span>
                 </a>
             </li>
+
+            <li class="menu-divider"></li>
+
+            <li class="sidebar-menu-item menu-users">
+                <a class="{{ Request::is('users*') ? 'active' : '' }}" href="{{ route('users.index') }}">
+                    <i class="bi bi-people"></i>
+                    <span>Manajemen Akun</span>
+                </a>
+            </li>
+            @endif
         </ul>
     </nav>
     
