@@ -19,6 +19,8 @@ class MasterBarang extends Model
         'nama_barang',
         'stok',
         'lokasi_rak',
+        'created_by',
+        'updated_by',
     ];
 
     public function barangMasuk()
@@ -29,5 +31,21 @@ class MasterBarang extends Model
     public function barangKeluar()
     {
         return $this->hasMany(BarangKeluar::class, 'barcode', 'barcode');
+    }
+
+    /**
+     * Get the user who created this record
+     */
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who updated this record
+     */
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

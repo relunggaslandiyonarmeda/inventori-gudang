@@ -138,6 +138,7 @@
                                 <th>Nama Barang</th>
                                 <th>Jumlah Retur</th>
                                 <th>Tanggal Retur</th>
+                                <th><i class="bi bi-clock-history me-1"></i>Riwayat</th>
                                 <th>Keterangan</th>
                                 <th>Aksi</th>
                             </tr>
@@ -154,6 +155,15 @@
                                     <span class="badge bg-success">{{ $r->jumlah_retur }}</span>
                                 </td>
                                 <td>{{ $r->tanggal_retur->format('d/m/Y') }}</td>
+                                <td>
+                                    @if($r->createdBy)
+                                    <span class="badge bg-primary-subtle text-primary">
+                                        <i class="bi bi-person me-1"></i>{{ $r->createdBy->name ?? '-' }}
+                                    </span>
+                                    @else
+                                    <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>{{ $r->keterangan ?? '-' }}</td>
                                 <td>
                                     <form action="{{ route('barang.retur.destroy', $r->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin hapus retur ini? Stok akan dikurangi kembali.')">

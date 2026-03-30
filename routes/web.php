@@ -33,17 +33,20 @@ Route::middleware(['admin.auth'])->group(function () {
         Route::post('/master-barang', [InventoriController::class, 'masterBarangStore'])->name('master.barang.store');
         Route::put('/master-barang/{barcode}', [InventoriController::class, 'masterBarangUpdate'])->name('master.barang.update');
         Route::delete('/master-barang/{barcode}', [InventoriController::class, 'masterBarangDestroy'])->name('master.barang.destroy');
+        Route::get('/master-barang/riwayat', [InventoriController::class, 'masterBarangRiwayat'])->name('master.barang.riwayat');
 
         // Barang Retur
         Route::get('/barang-retur', [InventoriController::class, 'barangRetur'])->name('barang.retur');
         Route::post('/barang-retur', [InventoriController::class, 'barangReturStore'])->name('barang.retur.store');
         Route::delete('/barang-retur/{id}', [InventoriController::class, 'barangReturDestroy'])->name('barang.retur.destroy');
+        Route::get('/barang-retur/riwayat', [InventoriController::class, 'barangReturRiwayat'])->name('barang.retur.riwayat');
 
         // Barang Rusak
         Route::get('/barang-rusak', [InventoriController::class, 'barangRusak'])->name('barang.rusak');
         Route::post('/barang-rusak', [InventoriController::class, 'barangRusakStore'])->name('barang.rusak.store');
         Route::put('/barang-rusak/{id}', [InventoriController::class, 'barangRusakUpdate'])->name('barang.rusak.update');
         Route::delete('/barang-rusak/{id}', [InventoriController::class, 'barangRusakDestroy'])->name('barang.rusak.destroy');
+        Route::get('/barang-rusak/riwayat', [InventoriController::class, 'barangRusakRiwayat'])->name('barang.rusak.riwayat');
 
         // Laporan per Rak
         Route::get('/laporan-rak', [InventoriController::class, 'laporanRak'])->name('laporan.rak');
@@ -63,11 +66,13 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::get('/barang-masuk', [InventoriController::class, 'barangMasuk'])->name('barang.masuk');
     Route::post('/barang-masuk', [InventoriController::class, 'barangMasukStore'])->name('barang.masuk.store');
     Route::post('/barang-masuk-manual', [InventoriController::class, 'barangMasukManual'])->name('barang.masuk.manual');
+    Route::get('/barang-masuk/riwayat', [InventoriController::class, 'barangMasukRiwayat'])->name('barang.masuk.riwayat');
 
     // Barang Keluar
     Route::get('/barang-keluar', [InventoriController::class, 'barangKeluar'])->name('barang.keluar');
     Route::post('/barang-keluar', [InventoriController::class, 'barangKeluarStore'])->name('barang.keluar.store');
     Route::post('/barang-keluar-manual', [InventoriController::class, 'barangKeluarManual'])->name('barang.keluar.manual');
+    Route::get('/barang-keluar/riwayat', [InventoriController::class, 'barangKeluarRiwayat'])->name('barang.keluar.riwayat');
 
     // Laporan
     Route::get('/laporan', [InventoriController::class, 'laporan'])->name('laporan.index');
@@ -92,6 +97,11 @@ Route::middleware(['admin.auth'])->group(function () {
 
     // Search API
     Route::get('/search-barang', [InventoriController::class, 'searchBarang'])->name('search.barang');
+
+    // Profile Routes (accessible by all logged in users)
+    Route::get('/profile', [InventoriController::class, 'profile'])->name('profile');
+    Route::post('/profile/update-photo', [InventoriController::class, 'profileUpdatePhoto'])->name('profile.update.photo');
+    Route::post('/profile/update-password', [InventoriController::class, 'profileUpdatePassword'])->name('profile.update.password');
 });
 
 // Redirect root to login

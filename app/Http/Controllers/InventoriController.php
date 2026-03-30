@@ -31,6 +31,17 @@ class InventoriController extends Controller
         return null;
     }
 
+    // ========== GET CURRENT USER ID ==========
+    private function getCurrentUserId()
+    {
+        $userId = Session::get('user_id');
+        // Return null for admin user (hardcoded)
+        if ($userId === 'admin') {
+            return null;
+        }
+        return $userId;
+    }
+
     // ========== DASHBOARD ==========
     public function dashboard()
     {
@@ -54,7 +65,8 @@ class InventoriController extends Controller
         $search = $request->input('search');
         $rak = $request->input('rak');
         
-        $barangs = MasterBarang::when($search, function($query) use ($search) {
+        $barangs = MasterBarang::with(['createdBy', 'updatedBy'])
+            ->when($search, function($query) use ($search) {
                 $query->where('barcode', 'like', '%' . $search . '%')
                       ->orWhere('nama_barang', 'like', '%' . $search . '%')
                       ->orWhere('lokasi_rak', 'like', '%' . $search . '%');
@@ -84,7 +96,13 @@ class InventoriController extends Controller
             'lokasi_rak' => 'required|in:A,B,C,D,E,F,G,H,O',
         ]);
 
-        $barang = MasterBarang::create($request->all());
+        $barang = MasterBarang::create([
+            'barcode' => $request->barcode,
+            'nama_barang' => $request->nama_barang,
+            'stok' => $request->stok,
+            'lokasi_rak' => $request->lokasi_rak,
+            'created_by' => $this->getCurrentUserId(),
+        ]);
         
         Log::info('Barang ditambahkan', [
             'barcode' => $barang->barcode,
@@ -118,7 +136,12 @@ class InventoriController extends Controller
             }
         }
         
-        $barang->update($request->all());
+        $barang->update([
+            'nama_barang' => $request->nama_barang,
+            'stok' => $request->stok,
+            'lokasi_rak' => $request->lokasi_rak,
+            'updated_by' => $this->getCurrentUserId(),
+        ]);
 
         Log::info('Barang diupdate', [
             'barcode' => $barang->barcode,
@@ -148,6 +171,31 @@ class InventoriController extends Controller
         return redirect()->route('master.barang')->with('success', 'Barang berhasil dihapus!');
     }
 
+    // ========== RIWAYAT MASTER BARANG ==========
+    public function masterBarangRiwayat(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $search = $request->input('search');
+        $filter = $request->input('filter', 'semua');
+        
+        $barangs = MasterBarang::with(['createdBy', 'updatedBy'])
+            ->when($search, function($query) use ($search) {
+                $query->where('barcode', 'like', '%' . $search . '%')
+                      ->orWhere('nama_barang', 'like', '%' . $search . '%');
+            })
+            ->orderBy('updated_at', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
+        $totalBarang = MasterBarang::count();
+        $totalDibuat = MasterBarang::whereNotNull('created_by')->count();
+        $totalDiupdate = MasterBarang::whereNotNull('updated_by')->distinct()->count('updated_by');
+
+        return view('master_barang.riwayat', compact('barangs', 'search', 'filter', 'totalBarang', 'totalDibuat', 'totalDiupdate'));
+    }
+
     // ========== BARANG MASUK ==========
     public function barangMasuk()
     {
@@ -175,10 +223,17 @@ class InventoriController extends Controller
                 // Update stok di master_barang
                 $barang = MasterBarang::findOrFail($request->barcode);
                 $barang->stok = $barang->stok + $request->jumlah_masuk;
+                $barang->updated_by = $this->getCurrentUserId();
                 $barang->save();
 
                 // Simpan ke barang_masuk
-                BarangMasuk::create($request->all());
+                BarangMasuk::create([
+                    'barcode' => $request->barcode,
+                    'jumlah_masuk' => $request->jumlah_masuk,
+                    'tanggal' => $request->tanggal,
+                    'keterangan' => $request->keterangan,
+                    'created_by' => $this->getCurrentUserId(),
+                ]);
                 
                 Log::info('Barang masuk dicatat', [
                     'barcode' => $request->barcode,
@@ -220,6 +275,7 @@ class InventoriController extends Controller
                     'jumlah_masuk' => $request->jumlah_masuk,
                     'tanggal' => $request->tanggal,
                     'keterangan' => $request->keterangan,
+                    'created_by' => $this->getCurrentUserId(),
                 ]);
             });
 
@@ -227,6 +283,30 @@ class InventoriController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
+    }
+
+    // ========== RIWAYAT BARANG MASUK ==========
+    public function barangMasukRiwayat(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $search = $request->input('search');
+        
+        $barangMasuk = BarangMasuk::with(['masterBarang', 'createdBy'])
+            ->when($search, function($query) use ($search) {
+                $query->where('barcode', 'like', '%' . $search . '%')
+                      ->orWhereHas('masterBarang', function($q) use ($search) {
+                          $q->where('nama_barang', 'like', '%' . $search . '%');
+                      });
+            })
+            ->orderBy('tanggal', 'desc')
+            ->get();
+        
+        $totalQty = $barangMasuk->sum('jumlah_masuk');
+        $totalUser = $barangMasuk->pluck('created_by')->filter()->unique()->count();
+
+        return view('barang_masuk.riwayat', compact('barangMasuk', 'search', 'totalQty', 'totalUser'));
     }
 
     // ========== BARANG KELUAR ==========
@@ -261,10 +341,17 @@ class InventoriController extends Controller
 
                 // Update stok di master_barang
                 $barang->stok = $barang->stok - $request->jumlah_keluar;
+                $barang->updated_by = $this->getCurrentUserId();
                 $barang->save();
 
                 // Simpan ke barang_keluar
-                BarangKeluar::create($request->all());
+                BarangKeluar::create([
+                    'barcode' => $request->barcode,
+                    'jumlah_keluar' => $request->jumlah_keluar,
+                    'tanggal' => $request->tanggal,
+                    'keterangan' => $request->keterangan,
+                    'created_by' => $this->getCurrentUserId(),
+                ]);
                 
                 Log::info('Barang keluar dicatat', [
                     'barcode' => $request->barcode,
@@ -279,6 +366,30 @@ class InventoriController extends Controller
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    // ========== RIWAYAT BARANG KELUAR ==========
+    public function barangKeluarRiwayat(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $search = $request->input('search');
+        
+        $barangKeluar = BarangKeluar::with(['masterBarang', 'createdBy'])
+            ->when($search, function($query) use ($search) {
+                $query->where('barcode', 'like', '%' . $search . '%')
+                      ->orWhereHas('masterBarang', function($q) use ($search) {
+                          $q->where('nama_barang', 'like', '%' . $search . '%');
+                      });
+            })
+            ->orderBy('tanggal', 'desc')
+            ->get();
+        
+        $totalQty = $barangKeluar->sum('jumlah_keluar');
+        $totalUser = $barangKeluar->pluck('created_by')->filter()->unique()->count();
+
+        return view('barang_keluar.riwayat', compact('barangKeluar', 'search', 'totalQty', 'totalUser'));
     }
 
     public function barangKeluarManual(Request $request)
@@ -311,6 +422,7 @@ class InventoriController extends Controller
                     'jumlah_keluar' => $request->jumlah_keluar,
                     'tanggal' => $request->tanggal,
                     'keterangan' => $request->keterangan,
+                    'created_by' => $this->getCurrentUserId(),
                 ]);
             });
 
@@ -329,7 +441,7 @@ class InventoriController extends Controller
         $search = $request->search ?? '';
         
         // Get barang_keluar that haven't been fully retured
-        $barangKeluar = BarangKeluar::with('masterBarang')
+        $barangKeluar = BarangKeluar::with(['masterBarang', 'createdBy'])
             ->where(function($query) use ($search) {
                 if ($search) {
                     $query->where('barcode', 'like', "%$search%")
@@ -342,7 +454,7 @@ class InventoriController extends Controller
             ->get();
 
         // Get all retur records
-        $retur = BarangRetur::with(['barangKeluar.masterBarang', 'masterBarang'])
+        $retur = BarangRetur::with(['barangKeluar.masterBarang', 'masterBarang', 'createdBy'])
             ->orderBy('tanggal_retur', 'desc')
             ->get();
 
@@ -391,11 +503,13 @@ class InventoriController extends Controller
                     'jumlah_retur' => $request->jumlah_retur,
                     'tanggal_retur' => $request->tanggal_retur,
                     'keterangan' => $request->keterangan,
+                    'created_by' => $this->getCurrentUserId(),
                 ]);
 
                 // Update stok di master_barang (tambah stok)
                 $barang = MasterBarang::findOrFail($barangKeluar->barcode);
                 $barang->stok = $barang->stok + $request->jumlah_retur;
+                $barang->updated_by = $this->getCurrentUserId();
                 $barang->save();
             });
 
@@ -429,6 +543,30 @@ class InventoriController extends Controller
         }
     }
 
+    // ========== RIWAYAT BARANG RETUR ==========
+    public function barangReturRiwayat(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $search = $request->input('search');
+        
+        $retur = BarangRetur::with(['masterBarang', 'createdBy'])
+            ->when($search, function($query) use ($search) {
+                $query->where('barcode', 'like', '%' . $search . '%')
+                      ->orWhereHas('masterBarang', function($q) use ($search) {
+                          $q->where('nama_barang', 'like', '%' . $search . '%');
+                      });
+            })
+            ->orderBy('tanggal_retur', 'desc')
+            ->get();
+        
+        $totalQty = $retur->sum('jumlah_retur');
+        $totalUser = $retur->pluck('created_by')->filter()->unique()->count();
+
+        return view('barang_retur.riwayat', compact('retur', 'search', 'totalQty', 'totalUser'));
+    }
+
     // ========== LAPORAN ==========
     public function laporan()
     {
@@ -447,7 +585,7 @@ class InventoriController extends Controller
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangMasuks = BarangMasuk::with('masterBarang')
+        $barangMasuks = BarangMasuk::with(['masterBarang', 'createdBy'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->orderBy('tanggal', 'asc')
@@ -466,7 +604,7 @@ class InventoriController extends Controller
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangMasuks = BarangMasuk::with('masterBarang')
+        $barangMasuks = BarangMasuk::with(['masterBarang', 'createdBy'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->orderBy('tanggal', 'asc')
@@ -540,7 +678,7 @@ class InventoriController extends Controller
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangKeluars = BarangKeluar::with('masterBarang')
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'createdBy'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -560,7 +698,7 @@ class InventoriController extends Controller
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangKeluars = BarangKeluar::with('masterBarang')
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'createdBy'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -956,6 +1094,7 @@ class InventoriController extends Controller
             'lokasi_unit' => $request->lokasi_unit,
             'kondisi_unit' => $request->kondisi_unit,
             'keterangan' => $request->keterangan,
+            'created_by' => $this->getCurrentUserId(),
         ]);
 
         // Save vehicle_group_code to master if not exists
@@ -1065,13 +1204,33 @@ class InventoriController extends Controller
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil dihapus!');
     }
 
+    // ========== RIWAYAT BARANG RUSAK ==========
+    public function barangRusakRiwayat(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $search = $request->input('search');
+        
+        $rusak = BarangRusak::with('createdBy')
+            ->when($search, function($query) use ($search) {
+                $query->where('vehicle_group_code', 'like', '%' . $search . '%')
+                      ->orWhere('description', 'like', '%' . $search . '%')
+                      ->orWhere('merek', 'like', '%' . $search . '%');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('barang_rusak.riwayat', compact('rusak', 'search'));
+    }
+
     // ========== LAPORAN BARANG RUSAK ==========
     public function laporanRusak(Request $request)
     {
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
         
         return view('laporan.rusak', compact('barangRusaks'));
     }
@@ -1081,7 +1240,7 @@ class InventoriController extends Controller
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
 
         $pdf = Pdf::loadView('laporan.pdf.rusak', compact('barangRusaks'));
         $pdf->setPaper('a4', 'landscape');
@@ -1094,7 +1253,7 @@ class InventoriController extends Controller
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
 
         return Excel::download(new LaporanExport('rusak', $barangRusaks, ''), 'laporan_barang_rusak.xlsx');
     }
@@ -1104,7 +1263,7 @@ class InventoriController extends Controller
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
 
         $filename = 'laporan_barang_rusak.csv';
         $headers = [
@@ -1191,6 +1350,7 @@ class InventoriController extends Controller
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'role' => $request->role,
+            'menu_permissions' => $request->role === 'user' ? ($request->menu_permissions ?? []) : null,
         ]);
 
         Log::info('User created', [
@@ -1227,6 +1387,7 @@ class InventoriController extends Controller
         $user->username = $request->username;
         $user->email = $request->email;
         $user->role = $request->role;
+        $user->menu_permissions = $request->role === 'user' ? ($request->menu_permissions ?? []) : null;
 
         if ($request->password) {
             $user->password = Hash::make($request->password);
@@ -1271,5 +1432,113 @@ class InventoriController extends Controller
         ]);
 
         return redirect()->route('users.index')->with('success', 'User berhasil dihapus!');
+    }
+
+    // ========== PROFILE ==========
+    public function profile()
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $userId = Session::get('user_id');
+        $isAdmin = ($userId === 'admin');
+        
+        // For admin (hardcoded), return basic info
+        if ($isAdmin) {
+            return view('profile.index', [
+                'user' => null,
+                'isAdmin' => true,
+            ]);
+        }
+
+        $user = User::findOrFail($userId);
+        return view('profile.index', compact('user', 'isAdmin'));
+    }
+
+    public function profileUpdatePhoto(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $userId = Session::get('user_id');
+        
+        // Admin cannot update profile photo (hardcoded account)
+        if ($userId === 'admin') {
+            return back()->with('error', 'Akun admin tidak dapat mengubah foto profil!');
+        }
+
+        $request->validate([
+            'profile_photo' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+        ]);
+
+        $user = User::findOrFail($userId);
+
+        // Delete old photo if exists
+        if ($user->profile_photo) {
+            $oldPath = storage_path('app/public/profile_photos/' . $user->profile_photo);
+            if (file_exists($oldPath)) {
+                unlink($oldPath);
+            }
+        }
+
+        // Store new photo
+        $file = $request->file('profile_photo');
+        $filename = time() . '_' . $user->id . '.' . $file->getClientOriginalExtension();
+        
+        // Ensure directory exists
+        $directory = storage_path('app/public/profile_photos');
+        if (!file_exists($directory)) {
+            mkdir($directory, 0777, true);
+        }
+        
+        $file->move($directory, $filename);
+
+        $user->profile_photo = $filename;
+        $user->save();
+
+        // Update session
+        Session::put('user_profile_photo', $filename);
+
+        Log::info('Profile photo updated', [
+            'user_id' => $user->id,
+            'username' => $user->username
+        ]);
+
+        return back()->with('success', 'Foto profil berhasil diperbarui!');
+    }
+
+    public function profileUpdatePassword(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return $authCheck;
+
+        $userId = Session::get('user_id');
+        
+        // Admin cannot change password this way (hardcoded)
+        if ($userId === 'admin') {
+            return back()->with('error', 'Akun admin tidak dapat mengubah password melalui halaman ini!');
+        }
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user = User::findOrFail($userId);
+
+        // Verify current password
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->with('error', 'Password saat ini salah!');
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        Log::info('Password changed', [
+            'user_id' => $user->id,
+            'username' => $user->username
+        ]);
+
+        return back()->with('success', 'Password berhasil diperbarui!');
     }
 }

@@ -237,11 +237,77 @@
             margin: 20px 0;
         }
 
+        /* Submenu Styles - Improved */
+        .sidebar-menu-item {
+            position: relative;
+        }
+
+        .sidebar-menu-item > a {
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-menu-item > a .bi-chevron-down {
+            font-size: 10px;
+            margin-left: auto;
+            transition: transform 0.3s;
+        }
+
+        .sidebar-menu-item:hover > a .bi-chevron-down,
+        .sidebar-menu-item > a.active + .sidebar-submenu ~ a .bi-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        .sidebar-submenu {
+            list-style: none;
+            padding-left: 0;
+            margin: 0;
+            display: none;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-top: 4px;
+        }
+
+        .sidebar-menu-item:hover > .sidebar-submenu,
+        .sidebar-menu-item .sidebar-submenu:hover {
+            display: block;
+        }
+
+        .sidebar-menu-item .sidebar-submenu li a {
+            padding: 10px 16px 10px 40px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .sidebar-menu-item .sidebar-submenu li a:hover {
+            background: var(--sidebar-hover);
+            color: #fff;
+            padding-left: 44px;
+        }
+
+        .sidebar-menu-item .sidebar-submenu li a.active {
+            background: var(--sidebar-active);
+            color: #fff;
+        }
+
+        .sidebar-menu-item .sidebar-submenu li a i {
+            font-size: 12px;
+            width: 16px;
+        }
+
         /* Menu Colors */
         .menu-dashboard a i { color: var(--primary-light); }
         .menu-master a i { color: #a78bfa; }
         .menu-masuk a i { color: var(--success-color); }
         .menu-keluar a i { color: var(--danger-color); }
+        .menu-retur a i { color: var(--warning-color); }
+        .menu-rusak a i { color: #dc2626; }
         .menu-laporan a i { color: var(--warning-color); }
 
         /* ========================================
@@ -702,15 +768,21 @@
                 <span>Inventori Gudang</span>
             </a>
             <div class="user-info">
-                <span class="user-name d-none d-md-inline">{{ Session::get('user_name') }}</span>
+                <a href="{{ route('profile') }}" class="user-name d-none d-md-inline text-decoration-none text-white">
+                    {{ Session::get('user_name') }}
+                </a>
                 @if(Session::get('user_role') === 'admin')
                 <span class="badge bg-danger ms-1">Admin</span>
                 @else
                 <span class="badge bg-info ms-1">User</span>
                 @endif
-                <div class="user-avatar">
+                <a href="{{ route('profile') }}" class="user-avatar text-decoration-none">
+                    @if(Session::get('user_profile_photo'))
+                    <img src="{{ asset('storage/profile_photos/' . Session::get('user_profile_photo')) }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                    @else
                     <i class="bi bi-person"></i>
-                </div>
+                    @endif
+                </a>
                 <form action="{{ route('logout') }}" method="POST" class="d-inline">
                     @csrf
                     <button type="submit" class="btn btn-logout">
@@ -739,42 +811,93 @@
                 </a>
             </li>
             
-            @if(Session::get('user_role') === 'admin')
+            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('master_barang', Session::get('user_menu_permissions', []))))
             <li class="sidebar-menu-item menu-master">
                 <a class="{{ Request::is('master-barang*') ? 'active' : '' }}" href="{{ route('master.barang') }}">
                     <i class="bi bi-box-seam"></i>
                     <span>Master Barang</span>
+                    <i class="bi bi-chevron-down ms-auto"></i>
                 </a>
+                <ul class="sidebar-submenu">
+                    <li><a href="{{ route('master.barang') }}" class="{{ Request::is('master-barang') && !Request::is('master-barang/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-list-ul"></i> Daftar Barang
+                    </a></li>
+                    <li><a href="{{ route('master.barang.riwayat') }}" class="{{ Request::is('master-barang/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i> Riwayat
+                    </a></li>
+                </ul>
             </li>
             @endif
             
+            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_masuk', Session::get('user_menu_permissions', []))))
             <li class="sidebar-menu-item menu-masuk">
                 <a class="{{ Request::is('barang-masuk*') ? 'active' : '' }}" href="{{ route('barang.masuk') }}">
                     <i class="bi bi-arrow-down-circle"></i>
                     <span>Barang Masuk</span>
+                    <i class="bi bi-chevron-down ms-auto"></i>
                 </a>
+                <ul class="sidebar-submenu">
+                    <li><a href="{{ route('barang.masuk') }}" class="{{ Request::is('barang-masuk') && !Request::is('barang-masuk/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-plus-circle"></i> Input Masuk
+                    </a></li>
+                    <li><a href="{{ route('barang.masuk.riwayat') }}" class="{{ Request::is('barang-masuk/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i> Riwayat
+                    </a></li>
+                </ul>
             </li>
+            @endif
             
+            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_keluar', Session::get('user_menu_permissions', []))))
             <li class="sidebar-menu-item menu-keluar">
                 <a class="{{ Request::is('barang-keluar*') ? 'active' : '' }}" href="{{ route('barang.keluar') }}">
                     <i class="bi bi-arrow-up-circle"></i>
                     <span>Barang Keluar</span>
+                    <i class="bi bi-chevron-down ms-auto"></i>
                 </a>
+                <ul class="sidebar-submenu">
+                    <li><a href="{{ route('barang.keluar') }}" class="{{ Request::is('barang-keluar') && !Request::is('barang-keluar/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-dash-circle"></i> Input Keluar
+                    </a></li>
+                    <li><a href="{{ route('barang.keluar.riwayat') }}" class="{{ Request::is('barang-keluar/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i> Riwayat
+                    </a></li>
+                </ul>
             </li>
-
-            @if(Session::get('user_role') === 'admin')
+            @endif
+            
+            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_retur', Session::get('user_menu_permissions', []))))
             <li class="sidebar-menu-item menu-retur">
                 <a class="{{ Request::is('barang-retur*') ? 'active' : '' }}" href="{{ route('barang.retur') }}">
                     <i class="bi bi-arrow-return-left"></i>
                     <span>Barang Retur</span>
+                    <i class="bi bi-chevron-down ms-auto"></i>
                 </a>
+                <ul class="sidebar-submenu">
+                    <li><a href="{{ route('barang.retur') }}" class="{{ Request::is('barang-retur') && !Request::is('barang-retur/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-plus-circle"></i> Input Retur
+                    </a></li>
+                    <li><a href="{{ route('barang.retur.riwayat') }}" class="{{ Request::is('barang-retur/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i> Riwayat
+                    </a></li>
+                </ul>
             </li>
+            @endif
 
+            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_rusak', Session::get('user_menu_permissions', []))))
             <li class="sidebar-menu-item menu-rusak">
                 <a class="{{ Request::is('barang-rusak*') ? 'active' : '' }}" href="{{ route('barang.rusak') }}">
                     <i class="bi bi-exclamation-triangle"></i>
                     <span>Barang Rusak</span>
+                    <i class="bi bi-chevron-down ms-auto"></i>
                 </a>
+                <ul class="sidebar-submenu">
+                    <li><a href="{{ route('barang.rusak') }}" class="{{ Request::is('barang-rusak') && !Request::is('barang-rusak/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-plus-circle"></i> Input Rusak
+                    </a></li>
+                    <li><a href="{{ route('barang.rusak.riwayat') }}" class="{{ Request::is('barang-rusak/riwayat') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i> Riwayat
+                    </a></li>
+                </ul>
             </li>
             @endif
             

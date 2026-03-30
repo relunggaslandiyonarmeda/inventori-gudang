@@ -65,6 +65,7 @@
                             <thead>
                                 <tr>
                                     <th>No</th>
+                                    <th>Foto</th>
                                     <th>Nama</th>
                                     <th>Username</th>
                                     <th>Email</th>
@@ -77,6 +78,18 @@
                                 @forelse($users as $key => $user)
                                 <tr>
                                     <td>{{ $users->firstItem() + $key }}</td>
+                                    <td>
+                                        @if($user->profile_photo)
+                                        <img src="{{ asset('storage/profile_photos/' . $user->profile_photo) }}" 
+                                             alt="Foto" class="rounded-circle" 
+                                             style="width: 40px; height: 40px; object-fit: cover;">
+                                        @else
+                                        <div class="bg-secondary rounded-circle d-inline-flex align-items-center justify-content-center" 
+                                             style="width: 40px; height: 40px;">
+                                            <span class="text-white small">{{ strtoupper(substr($user->name, 0, 2)) }}</span>
+                                        </div>
+                                        @endif
+                                    </td>
                                     <td>{{ $user->name }}</td>
                                     <td>{{ $user->username }}</td>
                                     <td>{{ $user->email ?? '-' }}</td>
@@ -132,10 +145,46 @@
                                                     </div>
                                                     <div class="mb-3">
                                                         <label class="form-label">Role</label>
-                                                        <select name="role" class="form-select" required>
+                                                        <select name="role" class="form-select" required onchange="toggleEditMenuPermissions('editUserModal{{ $user->id }}', this.value)">
                                                             <option value="admin" {{ $user->role === 'admin' ? 'selected' : '' }}>Admin</option>
                                                             <option value="user" {{ $user->role === 'user' ? 'selected' : '' }}>User</option>
                                                         </select>
+                                                    </div>
+                                                    <div class="mb-3 edit-menu-section" style="display: {{ $user->role === 'user' ? 'block' : 'none' }};">
+                                                        <label class="form-label">Akses Menu</label>
+                                                        <div class="border rounded p-3">
+                                                            <div class="form-check mb-2">
+                                                                <input type="checkbox" name="menu_permissions[]" value="master_barang" class="form-check-input" id="edit_checkMasterBarang{{ $user->id }}" {{ in_array('master_barang', $user->menu_permissions ?? []) ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="edit_checkMasterBarang{{ $user->id }}">
+                                                                    <i class="bi bi-box-seam me-1"></i> Master Barang
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check mb-2">
+                                                                <input type="checkbox" name="menu_permissions[]" value="barang_masuk" class="form-check-input" id="edit_checkBarangMasuk{{ $user->id }}" {{ in_array('barang_masuk', $user->menu_permissions ?? []) ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="edit_checkBarangMasuk{{ $user->id }}">
+                                                                    <i class="bi bi-arrow-down-circle me-1"></i> Barang Masuk
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check mb-2">
+                                                                <input type="checkbox" name="menu_permissions[]" value="barang_keluar" class="form-check-input" id="edit_checkBarangKeluar{{ $user->id }}" {{ in_array('barang_keluar', $user->menu_permissions ?? []) ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="edit_checkBarangKeluar{{ $user->id }}">
+                                                                    <i class="bi bi-arrow-up-circle me-1"></i> Barang Keluar
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check mb-2">
+                                                                <input type="checkbox" name="menu_permissions[]" value="barang_retur" class="form-check-input" id="edit_checkBarangRetur{{ $user->id }}" {{ in_array('barang_retur', $user->menu_permissions ?? []) ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="edit_checkBarangRetur{{ $user->id }}">
+                                                                    <i class="bi bi-arrow-return-left me-1"></i> Barang Retur
+                                                                </label>
+                                                            </div>
+                                                            <div class="form-check">
+                                                                <input type="checkbox" name="menu_permissions[]" value="barang_rusak" class="form-check-input" id="edit_checkBarangRusak{{ $user->id }}" {{ in_array('barang_rusak', $user->menu_permissions ?? []) ? 'checked' : '' }}>
+                                                                <label class="form-check-label" for="edit_checkBarangRusak{{ $user->id }}">
+                                                                    <i class="bi bi-exclamation-triangle me-1"></i> Barang Rusak
+                                                                </label>
+                                                            </div>
+                                                        </div>
+                                                        <small class="text-muted">Pilih menu yang dapat diakses oleh user</small>
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer">
@@ -223,10 +272,46 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Role</label>
-                        <select name="role" class="form-select" required>
+                        <select name="role" class="form-select" required id="addRoleSelect" onchange="toggleMenuPermissions()">
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                         </select>
+                    </div>
+                    <div class="mb-3" id="menuPermissionsSection" style="display: none;">
+                        <label class="form-label">Akses Menu</label>
+                        <div class="border rounded p-3">
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="menu_permissions[]" value="master_barang" class="form-check-input" id="checkMasterBarang">
+                                <label class="form-check-label" for="checkMasterBarang">
+                                    <i class="bi bi-box-seam me-1"></i> Master Barang
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="menu_permissions[]" value="barang_masuk" class="form-check-input" id="checkBarangMasuk">
+                                <label class="form-check-label" for="checkBarangMasuk">
+                                    <i class="bi bi-arrow-down-circle me-1"></i> Barang Masuk
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="menu_permissions[]" value="barang_keluar" class="form-check-input" id="checkBarangKeluar">
+                                <label class="form-check-label" for="checkBarangKeluar">
+                                    <i class="bi bi-arrow-up-circle me-1"></i> Barang Keluar
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="menu_permissions[]" value="barang_retur" class="form-check-input" id="checkBarangRetur">
+                                <label class="form-check-label" for="checkBarangRetur">
+                                    <i class="bi bi-arrow-return-left me-1"></i> Barang Retur
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" name="menu_permissions[]" value="barang_rusak" class="form-check-input" id="checkBarangRusak">
+                                <label class="form-check-label" for="checkBarangRusak">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> Barang Rusak
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Pilih menu yang dapat diakses oleh user</small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -237,4 +322,26 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleMenuPermissions() {
+    var roleSelect = document.getElementById('addRoleSelect');
+    var menuSection = document.getElementById('menuPermissionsSection');
+    if (roleSelect.value === 'user') {
+        menuSection.style.display = 'block';
+    } else {
+        menuSection.style.display = 'none';
+    }
+}
+
+function toggleEditMenuPermissions(modalId, role) {
+    var modal = document.getElementById(modalId);
+    var menuSection = modal.querySelector('.edit-menu-section');
+    if (role === 'user') {
+        menuSection.style.display = 'block';
+    } else {
+        menuSection.style.display = 'none';
+    }
+}
+</script>
 @endsection

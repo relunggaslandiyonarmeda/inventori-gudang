@@ -39,6 +39,8 @@ class AuthController extends Controller
             Session::put('user_name', 'Administrator');
             Session::put('user_username', 'admin');
             Session::put('user_role', 'admin');
+            Session::put('user_profile_photo', null);
+            Session::put('user_menu_permissions', ['master_barang', 'barang_masuk', 'barang_keluar', 'barang_retur', 'barang_rusak']);
             
             if ($request->has('remember')) {
                 cookie()->queue('user_remember', 'admin', 525600);
@@ -58,6 +60,8 @@ class AuthController extends Controller
             Session::put('user_name', $user->name);
             Session::put('user_username', $user->username);
             Session::put('user_role', $user->role);
+            Session::put('user_profile_photo', $user->profile_photo);
+            Session::put('user_menu_permissions', is_array($user->menu_permissions) ? $user->menu_permissions : []);
             
             if ($request->has('remember')) {
                 cookie()->queue('user_remember', $user->id, 525600);

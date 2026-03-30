@@ -16,6 +16,8 @@ class BarangKeluar extends Model
         'jumlah_keluar',
         'tanggal',
         'keterangan',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -30,5 +32,21 @@ class BarangKeluar extends Model
     public function retur()
     {
         return $this->hasMany(BarangRetur::class, 'barang_keluar_id');
+    }
+
+    /**
+     * Get the user who created this record
+     */
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who updated this record
+     */
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

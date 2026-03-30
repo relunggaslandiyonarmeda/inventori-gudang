@@ -21,6 +21,8 @@ class BarangRusak extends Model
         'lokasi_unit',
         'kondisi_unit',
         'keterangan',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -33,5 +35,21 @@ class BarangRusak extends Model
     public function masterBarang()
     {
         return $this->belongsTo(MasterBarang::class, 'merek', 'nama_barang');
+    }
+
+    /**
+     * Get the user who created this record
+     */
+    public function createdBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who updated this record
+     */
+    public function updatedBy()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }
