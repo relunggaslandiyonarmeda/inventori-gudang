@@ -162,6 +162,130 @@
         }
 
         /* ========================================
+           GLOBAL SEARCH
+        ======================================== */
+        .global-search-wrapper {
+            position: relative;
+            width: 220px;
+            margin-right: 12px;
+        }
+        
+        @media (min-width: 992px) {
+            .global-search-wrapper {
+                width: 250px;
+            }
+        }
+        
+        @media (max-width: 991px) {
+            .global-search-wrapper {
+                width: 100%;
+                margin: 8px 0;
+            }
+        }
+        
+        .global-search-wrapper .input-group {
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
+        }
+        
+        .global-search-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #fff;
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-lg);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 9999;
+            display: none;
+        }
+        
+        .global-search-dropdown.show {
+            display: block;
+        }
+        
+        .global-search-result {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition);
+        }
+        
+        .global-search-result:hover {
+            background: var(--body-bg);
+            color: var(--primary-color);
+        }
+        
+        .global-search-result:last-child {
+            border-bottom: none;
+        }
+        
+        .global-search-result-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+        
+        .global-search-result-icon.master { background: rgba(79, 70, 229, 0.1); color: var(--primary-color); }
+        .global-search-result-icon.masuk { background: rgba(16, 185, 129, 0.1); color: var(--success-color); }
+        .global-search-result-icon.keluar { background: rgba(239, 68, 68, 0.1); color: var(--danger-color); }
+        .global-search-result-icon.rusak { background: rgba(245, 158, 11, 0.1); color: var(--warning-color); }
+        .global-search-result-icon.retur { background: rgba(6, 182, 212, 0.1); color: var(--info-color); }
+        
+        .global-search-result-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .global-search-result-title {
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .global-search-result-subtitle {
+            font-size: 12px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .global-search-type-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+        
+        .global-search-loading {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .global-search-no-results {
+            padding: 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* ========================================
            SIDEBAR
         ======================================== */
         .sidebar-fixed {
@@ -695,6 +819,21 @@
             .navbar-fixed {
                 height: 60px;
             }
+            
+            .global-search-wrapper {
+                width: 100% !important;
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 60px;
+                padding: 8px 16px;
+                background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+                display: block !important;
+            }
+            
+            .global-search-wrapper .input-group {
+                width: 100%;
+            }
             .page-title {
                 font-size: 1.4rem;
             }
@@ -767,6 +906,17 @@
                 <i class="bi bi-boxes"></i>
                 <span>Inventori Gudang</span>
             </a>
+            <!-- Global Search -->
+            <form class="global-search-wrapper" onsubmit="return false;">
+                <div class="input-group input-group-sm">
+                    <input type="text" class="form-control" id="globalSearchInput" placeholder="Cari..." style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 13px;" autocomplete="off">
+                    <button class="btn btn-outline-light" type="button" style="border-color: rgba(255,255,255,0.4);">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+                <div class="global-search-dropdown" id="globalSearchDropdown"></div>
+            </form>
+            
             <div class="user-info">
                 <a href="{{ route('profile') }}" class="user-name d-none d-md-inline text-decoration-none text-white">
                     {{ Session::get('user_name') }}
@@ -964,6 +1114,145 @@
     <!-- Barcode Scanning JS -->
     <script src="{{ asset('assets/js/quagga.min.js') }}"></script>
     <script src="{{ asset('assets/js/JsBarcode.all.min.js') }}"></script>
+    
+    <!-- Global Search JS -->
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('globalSearchInput');
+        const searchDropdown = document.getElementById('globalSearchDropdown');
+        
+        console.log('Global search init:', searchInput, searchDropdown);
+        
+        if (!searchInput || !searchDropdown) {
+            console.log('Search elements not found');
+            return;
+        }
+        
+        let debounceTimer;
+        let searchUrl = '{{ route("global.search") }}';
+        
+        // Get icon class based on type
+        function getTypeIcon(type) {
+            const icons = {
+                'Master Barang': 'bi-box-seam',
+                'Barang Masuk': 'bi-arrow-down-circle',
+                'Barang Keluar': 'bi-arrow-up-circle',
+                'Barang Rusak': 'bi-exclamation-triangle',
+                'Barang Retur': 'bi-arrow-repeat'
+            };
+            return icons[type] || 'bi-search';
+        }
+        
+        // Get icon class based on type
+        function getTypeClass(type) {
+            const classes = {
+                'Master Barang': 'master',
+                'Barang Masuk': 'masuk',
+                'Barang Keluar': 'keluar',
+                'Barang Rusak': 'rusak',
+                'Barang Retur': 'retur'
+            };
+            return classes[type] || 'master';
+        }
+        
+        // Render search results
+        function renderResults(results) {
+            if (!results || results.length === 0) {
+                searchDropdown.innerHTML = '<div class="global-search-no-results">Tidak ada hasil pencarian</div>';
+                return;
+            }
+            
+            let html = '';
+            results.forEach(function(item) {
+                html += '<a href="' + item.url + '" class="global-search-result">' +
+                    '<div class="global-search-result-icon ' + getTypeClass(item.type) + '">' +
+                        '<i class="bi ' + getTypeIcon(item.type) + '"></i>' +
+                    '</div>' +
+                    '<div class="global-search-result-content">' +
+                        '<div class="global-search-result-title">' + escapeHtml(item.title) + '</div>' +
+                        '<div class="global-search-result-subtitle">' + escapeHtml(item.subtitle) + '</div>' +
+                    '</div>' +
+                    '<span class="global-search-type-badge bg-light text-dark">' + item.type + '</span>' +
+                '</a>';
+            });
+            searchDropdown.innerHTML = html;
+        }
+        
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Perform search
+        function performSearch(query) {
+            if (!query || query.length < 2) {
+                searchDropdown.classList.remove('show');
+                return;
+            }
+            
+            searchDropdown.innerHTML = '<div class="global-search-loading"><i class="bi bi-hourglass-split animate-spin"></i> Mencari...</div>';
+            searchDropdown.classList.add('show');
+            
+            fetch(searchUrl + '?q=' + encodeURIComponent(query), {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    renderResults(data);
+                })
+                .catch(function(error) {
+                    searchDropdown.innerHTML = '<div class="global-search-no-results">Terjadi kesalahan</div>';
+                });
+        }
+        
+        // Input event with debounce
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                searchDropdown.classList.remove('show');
+                return;
+            }
+            
+            debounceTimer = setTimeout(function() {
+                performSearch(query);
+            }, 300);
+        });
+        
+        // Focus
+        searchInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2) {
+                searchDropdown.classList.add('show');
+            }
+        });
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target)) {
+                searchDropdown.classList.remove('show');
+            }
+        });
+        
+        // Handle keyboard navigation
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                searchDropdown.classList.remove('show');
+                searchInput.blur();
+            }
+        });
+    });
+    </script>
     
     @yield('scripts')
 </body>

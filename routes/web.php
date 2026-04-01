@@ -98,6 +98,9 @@ Route::middleware(['admin.auth'])->group(function () {
     // Search API
     Route::get('/search-barang', [InventoriController::class, 'searchBarang'])->name('search.barang');
 
+    // Global Search API
+    Route::get('/search-global', [InventoriController::class, 'globalSearch'])->name('global.search');
+
     // Profile Routes (accessible by all logged in users)
     Route::get('/profile', [InventoriController::class, 'profile'])->name('profile');
     Route::post('/profile/update-photo', [InventoriController::class, 'profileUpdatePhoto'])->name('profile.update.photo');

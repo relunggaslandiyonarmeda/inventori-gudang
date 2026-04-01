@@ -1031,6 +1031,108 @@ class InventoriController extends Controller
         return response()->json($barangs);
     }
 
+    // ========== GLOBAL SEARCH API ==========
+    public function globalSearch(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return response()->json(['error' => 'Unauthorized'], 401);
+        
+        $query = $request->q ?? '';
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+        
+        $results = [];
+        
+        // Search in Master Barang
+        $barangs = MasterBarang::where('nama_barang', 'like', '%' . $query . '%')
+            ->orWhere('barcode', 'like', '%' . $query . '%')
+            ->orWhere('lokasi_rak', 'like', '%' . $query . '%')
+            ->limit(5)
+            ->get()
+            ->map(function($item) use ($query) {
+                return [
+                    'type' => 'Master Barang',
+                    'title' => $item->nama_barang,
+                    'subtitle' => 'Barcode: ' . $item->barcode . ' | Rak: ' . ($item->lokasi_rak ?? '-'),
+                    'url' => route('master.barang') . '?search=' . urlencode($query)
+                ];
+            });
+        $results = array_merge($results, $barangs->toArray());
+        
+        // Search in Barang Masuk
+        $masuks = BarangMasuk::whereHas('masterBarang', function($q) use ($query) {
+                $q->where('nama_barang', 'like', '%' . $query . '%')
+                  ->orWhere('barcode', 'like', '%' . $query . '%');
+            })
+            ->with('masterBarang')
+            ->limit(5)
+            ->get()
+            ->map(function($item) use ($query) {
+                return [
+                    'type' => 'Barang Masuk',
+                    'title' => $item->masterBarang->nama_barang ?? 'N/A',
+                    'subtitle' => 'No: ' . $item->nomor . ' | ' . $item->tanggal,
+                    'url' => route('barang.masuk') . '?search=' . urlencode($query)
+                ];
+            });
+        $results = array_merge($results, $masuks->toArray());
+        
+        // Search in Barang Keluar
+        $keluars = BarangKeluar::whereHas('masterBarang', function($q) use ($query) {
+                $q->where('nama_barang', 'like', '%' . $query . '%')
+                  ->orWhere('barcode', 'like', '%' . $query . '%');
+            })
+            ->with('masterBarang')
+            ->limit(5)
+            ->get()
+            ->map(function($item) use ($query) {
+                return [
+                    'type' => 'Barang Keluar',
+                    'title' => $item->masterBarang->nama_barang ?? 'N/A',
+                    'subtitle' => 'No: ' . $item->nomor . ' | ' . $item->tanggal,
+                    'url' => route('barang.keluar') . '?search=' . urlencode($query)
+                ];
+            });
+        $results = array_merge($results, $keluars->toArray());
+        
+        // Search in Barang Rusak
+        $rusaks = BarangRusak::where('vehicle_group_code', 'like', '%' . $query . '%')
+            ->orWhere('merek', 'like', '%' . $query . '%')
+            ->orWhere('description', 'like', '%' . $query . '%')
+            ->limit(5)
+            ->get()
+            ->map(function($item) use ($query) {
+                return [
+                    'type' => 'Barang Rusak',
+                    'title' => $item->vehicle_group_code . ' - ' . $item->merek,
+                    'subtitle' => 'No: ' . $item->nomor . ' | Kondisi: ' . $item->kondisi_unit,
+                    'url' => route('barang.rusak') . '?search=' . urlencode($query)
+                ];
+            });
+        $results = array_merge($results, $rusaks->toArray());
+        
+        // Search in Barang Retur
+        $returs = BarangRetur::whereHas('masterBarang', function($q) use ($query) {
+                $q->where('nama_barang', 'like', '%' . $query . '%')
+                  ->orWhere('barcode', 'like', '%' . $query . '%');
+            })
+            ->with('masterBarang')
+            ->limit(5)
+            ->get()
+            ->map(function($item) use ($query) {
+                return [
+                    'type' => 'Barang Retur',
+                    'title' => $item->masterBarang->nama_barang ?? 'N/A',
+                    'subtitle' => 'ID: ' . $item->id . ' | ' . $item->tanggal_retur,
+                    'url' => route('barang.retur') . '?search=' . urlencode($query)
+                ];
+            });
+        $results = array_merge($results, $returs->toArray());
+        
+        return response()->json(array_slice($results, 0, 20));
+    }
+
     // ========== BARANG RUSAK ==========
     public function barangRusak()
     {

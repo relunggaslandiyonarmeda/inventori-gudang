@@ -3,6 +3,21 @@
 @section('title', 'Profil Saya - Inventori Gudang')
 
 @section('content')
+<!-- Popup/Toast Notification -->
+@if(session('success'))
+<div class="toast-container position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" style="min-width: 300px;">
+        <div class="toast-header bg-success text-white">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong class="me-auto">Berhasil</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body bg-light">
+            {{ session('success') }}
+        </div>
+    </div>
+</div>
+@endif
 <div class="container-fluid py-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -134,4 +149,36 @@
         </div>
     </div>
 </div>
+
+<!-- Toast Popup Notification for Password Change Success -->
+@if(session('success'))
+<div class="toast-container position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
+    <div class="toast show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="4000">
+        <div class="toast-header bg-success text-white">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            <strong class="me-auto">Berhasil</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body bg-light">
+            {{ session('success') }}
+        </div>
+    </div>
+</div>
+@endif
+
+@endsection
+
+@section('scripts')
+<!-- Auto-show toast on page load -->
+@if(session('success'))
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const toastEl = document.querySelector('.toast');
+    if (toastEl) {
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+    }
+});
+</script>
+@endif
 @endsection
