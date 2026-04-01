@@ -225,6 +225,58 @@
         </div>
     </div>
 </div>
+
+@if(!empty($search) && !empty($barangKeluarList))
+<!-- Search Results -->
+<div class="mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="bi bi-search text-primary me-2"></i>
+                Hasil Pencarian untuk "{{ $search }}"
+            </h5>
+        </div>
+        <div class="card-body">
+            @if($barangKeluarList->count() > 0)
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>No</th>
+                            <th>Barcode</th>
+                            <th>Nama Barang</th>
+                            <th>Jumlah</th>
+                            <th>Tanggal</th>
+                            <th>Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($barangKeluarList as $index => $item)
+                        <tr>
+                            <td>{{ $barangKeluarList->firstItem() + $index }}</td>
+                            <td><code>{{ $item->barcode }}</code></td>
+                            <td>{{ $item->masterBarang->nama_barang ?? '-' }}</td>
+                            <td><span class="badge bg-danger">{{ $item->jumlah_keluar }}</span></td>
+                            <td>{{ $item->tanggal }}</td>
+                            <td>{{ $item->keterangan ?? '-' }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-3">
+                {{ $barangKeluarList->appends(['search' => $search])->links() }}
+            </div>
+            @else
+            <div class="text-center py-4 text-muted">
+                <i class="bi bi-inbox fs-1"></i>
+                <p class="mt-2">Tidak ada data ditemukan</p>
+            </div>
+            @endif
+        </div>
+    </div>
+</div>
+@endif
 @endsection
 
 @section('scripts')

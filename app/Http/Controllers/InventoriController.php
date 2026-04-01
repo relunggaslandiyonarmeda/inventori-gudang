@@ -197,13 +197,29 @@ class InventoriController extends Controller
     }
 
     // ========== BARANG MASUK ==========
-    public function barangMasuk()
+    public function barangMasuk(Request $request)
     {
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
         $barangs = MasterBarang::orderBy('nama_barang', 'asc')->get();
-        return view('barang_masuk.index', compact('barangs'));
+        
+        // Handle search filter
+        $search = $request->search ?? '';
+        $barangMasukList = [];
+        
+        if (!empty($search)) {
+            $barangMasukList = BarangMasuk::whereHas('masterBarang', function($q) use ($search) {
+                    $q->where('nama_barang', 'like', '%' . $search . '%')
+                      ->orWhere('barcode', 'like', '%' . $search . '%');
+                })
+                ->orWhere('barcode', 'like', '%' . $search . '%')
+                ->with('masterBarang')
+                ->orderBy('id', 'desc')
+                ->paginate(10);
+        }
+        
+        return view('barang_masuk.index', compact('barangs', 'search', 'barangMasukList'));
     }
 
     public function barangMasukStore(Request $request)
@@ -310,13 +326,29 @@ class InventoriController extends Controller
     }
 
     // ========== BARANG KELUAR ==========
-    public function barangKeluar()
+    public function barangKeluar(Request $request)
     {
         $authCheck = $this->checkAuth();
         if ($authCheck) return $authCheck;
 
         $barangs = MasterBarang::orderBy('nama_barang', 'asc')->get();
-        return view('barang_keluar.index', compact('barangs'));
+        
+        // Handle search filter
+        $search = $request->search ?? '';
+        $barangKeluarList = [];
+        
+        if (!empty($search)) {
+            $barangKeluarList = BarangKeluar::whereHas('masterBarang', function($q) use ($search) {
+                    $q->where('nama_barang', 'like', '%' . $search . '%')
+                      ->orWhere('barcode', 'like', '%' . $search . '%');
+                })
+                ->orWhere('barcode', 'like', '%' . $search . '%')
+                ->with('masterBarang')
+                ->orderBy('id', 'desc')
+                ->paginate(10);
+        }
+        
+        return view('barang_keluar.index', compact('barangs', 'search', 'barangKeluarList'));
     }
 
     public function barangKeluarStore(Request $request)
@@ -1055,7 +1087,7 @@ class InventoriController extends Controller
                     'type' => 'Master Barang',
                     'title' => $item->nama_barang,
                     'subtitle' => 'Barcode: ' . $item->barcode . ' | Rak: ' . ($item->lokasi_rak ?? '-'),
-                    'url' => route('master.barang') . '?search=' . urlencode($query)
+                    'url' => route('master.barang') . '?search=' . urlencode($item->barcode)
                 ];
             });
         $results = array_merge($results, $barangs->toArray());
@@ -1065,6 +1097,7 @@ class InventoriController extends Controller
                 $q->where('nama_barang', 'like', '%' . $query . '%')
                   ->orWhere('barcode', 'like', '%' . $query . '%');
             })
+            ->orWhere('barcode', 'like', '%' . $query . '%')
             ->with('masterBarang')
             ->limit(5)
             ->get()
@@ -1072,8 +1105,8 @@ class InventoriController extends Controller
                 return [
                     'type' => 'Barang Masuk',
                     'title' => $item->masterBarang->nama_barang ?? 'N/A',
-                    'subtitle' => 'No: ' . $item->nomor . ' | ' . $item->tanggal,
-                    'url' => route('barang.masuk') . '?search=' . urlencode($query)
+                    'subtitle' => 'Barcode: ' . $item->barcode . ' | ' . $item->tanggal,
+                    'url' => route('barang.masuk') . '?search=' . urlencode($item->barcode)
                 ];
             });
         $results = array_merge($results, $masuks->toArray());
@@ -1083,6 +1116,7 @@ class InventoriController extends Controller
                 $q->where('nama_barang', 'like', '%' . $query . '%')
                   ->orWhere('barcode', 'like', '%' . $query . '%');
             })
+            ->orWhere('barcode', 'like', '%' . $query . '%')
             ->with('masterBarang')
             ->limit(5)
             ->get()
@@ -1090,8 +1124,8 @@ class InventoriController extends Controller
                 return [
                     'type' => 'Barang Keluar',
                     'title' => $item->masterBarang->nama_barang ?? 'N/A',
-                    'subtitle' => 'No: ' . $item->nomor . ' | ' . $item->tanggal,
-                    'url' => route('barang.keluar') . '?search=' . urlencode($query)
+                    'subtitle' => 'Barcode: ' . $item->barcode . ' | ' . $item->tanggal,
+                    'url' => route('barang.keluar') . '?search=' . urlencode($item->barcode)
                 ];
             });
         $results = array_merge($results, $keluars->toArray());
