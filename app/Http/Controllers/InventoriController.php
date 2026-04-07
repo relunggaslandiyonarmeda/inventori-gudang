@@ -52,8 +52,15 @@ class InventoriController extends Controller
         $totalStok = MasterBarang::sum('stok');
         $barangMasukHariIni = BarangMasuk::whereDate('tanggal', Carbon::today())->sum('jumlah_masuk');
         $barangKeluarHariIni = BarangKeluar::whereDate('tanggal', Carbon::today())->sum('jumlah_keluar');
+        
+        // Get empty stock items for warning
+        $barangStokHabis = MasterBarang::where('stok', '=', 0)
+            ->orderBy('nama_barang', 'asc')
+            ->get();
+            
+        $totalStokHabis = $barangStokHabis->count();
 
-        return view('dashboard', compact('totalBarang', 'totalStok', 'barangMasukHariIni', 'barangKeluarHariIni'));
+        return view('dashboard', compact('totalBarang', 'totalStok', 'barangMasukHariIni', 'barangKeluarHariIni', 'barangStokHabis', 'totalStokHabis'));
     }
 
     // ========== MASTER BARANG ==========

@@ -19,6 +19,22 @@
     </div>
 </div>
 
+<!-- Stock Empty Warning Alert -->
+@if($totalStokHabis > 0)
+<div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+    <div class="d-flex align-items-center">
+        <div class="me-3">
+            <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+        </div>
+        <div>
+            <h5 class="alert-heading mb-1">⚠️ PERINGATAN STOK HABIS!</h5>
+            <p class="mb-0">Terdapat <strong>{{ $totalStokHabis }}</strong> jenis barang yang stoknya sudah habis (0). Segera lakukan pengadaan barang!</p>
+        </div>
+        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+</div>
+@endif
+
 <!-- Statistics Cards -->
 <div class="row g-4 mb-4">
     @if(Session::get('user_role') === 'admin')
@@ -36,6 +52,26 @@
                     </div>
                     <div class="stat-icon primary">
                         <i class="bi bi-box-seam"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stock Empty Card -->
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card stat-card h-100 border-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="stat-label mb-1 text-danger">Barang Stok Habis</p>
+                        <h2 class="stat-value mb-0 text-danger">{{ $totalStokHabis }}</h2>
+                        <small class="text-muted">
+                            <i class="bi bi-exclamation-triangle me-1"></i>Perlu diorder
+                        </small>
+                    </div>
+                    <div class="stat-icon danger">
+                        <i class="bi bi-exclamation-triangle"></i>
                     </div>
                 </div>
             </div>
@@ -104,117 +140,47 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row g-4">
-    <div class="col-12">
-        <h5 class="fw-bold mb-3">
-            <i class="bi bi-lightning-charge text-warning me-2"></i>
-            Aksi Cepat
+<!-- Empty Stock Table -->
+@if($totalStokHabis > 0)
+<div class="card mb-4 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Daftar Barang Yang Stoknya Habis
         </h5>
     </div>
-    
-    @if(Session::get('user_role') === 'admin')
-    <div class="col-12 col-md-6 col-xl-3">
-        <a href="{{ route('master.barang') }}" class="text-decoration-none">
-            <div class="card h-100" style="border-left: 4px solid #4f46e5;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon primary me-3">
-                            <i class="bi bi-box-seam"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1">Master Barang</h6>
-                            <p class="text-muted small mb-0">Kelola data barang</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-    @endif
-
-    <div class="col-12 col-md-6 col-xl-3">
-        <a href="{{ route('barang.masuk') }}" class="text-decoration-none">
-            <div class="card h-100" style="border-left: 4px solid #10b981;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon success me-3">
-                            <i class="bi bi-arrow-down-circle"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1">Barang Masuk</h6>
-                            <p class="text-muted small mb-0">Tambah stok barang</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-12 col-md-6 col-xl-3">
-        <a href="{{ route('barang.keluar') }}" class="text-decoration-none">
-            <div class="card h-100" style="border-left: 4px solid #ef4444;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon danger me-3">
-                            <i class="bi bi-arrow-up-circle"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1">Barang Keluar</h6>
-                            <p class="text-muted small mb-0">Kurangi stok barang</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <div class="col-12 col-md-6 col-xl-3">
-        <a href="{{ route('laporan.index') }}" class="text-decoration-none">
-            <div class="card h-100" style="border-left: 4px solid #f59e0b;">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon warning me-3">
-                            <i class="bi bi-bar-chart-line"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-1">Laporan</h6>
-                            <p class="text-muted small mb-0">Lihat laporan transaksi</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-</div>
-
-<!-- Info Section -->
-<div class="row g-4 mt-4">
-    <div class="col-12">
-        <div class="card" style="background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);">
-            <div class="card-body text-white">
-                <div class="row align-items-center">
-                    <div class="col-md-8">
-                        <h5 class="fw-bold mb-2">
-                            <i class="bi bi-lightbulb me-2"></i>
-                            Tips Penggunaan
-                        </h5>
-                        <p class="mb-0 opacity-75">
-                            Gunakan fitur scan barcode untuk mempercepat proses input data. 
-                            Pastikan barcode barang terdaftar di Master Barang sebelum melakukan transaksi masuk atau keluar.
-                        </p>
-                    </div>
-                    @if(Session::get('user_role') === 'admin')
-                    <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                        <a href="{{ route('master.barang') }}" class="btn btn-light">
-                            <i class="bi bi-plus-circle me-1"></i>
-                            Tambah Barang Baru
-                        </a>
-                    </div>
-                    @endif
-                </div>
-            </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Barcode</th>
+                        <th>Nama Barang</th>
+                        <th>Lokasi Rak</th>
+                        <th class="text-center">Status Stok</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($barangStokHabis as $barang)
+                    <tr>
+                        <td><code>{{ $barang->barcode }}</code></td>
+                        <td>{{ $barang->nama_barang }}</td>
+                        <td><span class="badge bg-secondary">{{ $barang->lokasi_rak }}</span></td>
+                        <td class="text-center">
+                            <span class="badge bg-danger">
+                                <i class="bi bi-x-circle me-1"></i>
+                                HABIS
+                            </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+@endif
+
+<!-- Rest of dashboard content remains below -->
+
 @endsection
