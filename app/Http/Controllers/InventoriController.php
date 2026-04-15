@@ -471,6 +471,62 @@ class InventoriController extends Controller
         }
     }
 
+    public function barangKeluarQuickScan(Request $request)
+    {
+        $authCheck = $this->checkAuth();
+        if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+
+        $request->validate([
+            'items' => 'required|array',
+            'items.*.barcode' => 'required|string|exists:master_barang,barcode',
+            'items.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        try {
+            DB::transaction(function () use ($request) {
+                $currentTime = now();
+
+                foreach ($request->items as $item) {
+                    // Cek stok cukup
+                    $barang = MasterBarang::findOrFail($item['barcode']);
+                    if ($barang->stok < $item['quantity']) {
+                        throw new \Exception('Stok tidak cukup untuk ' . $barang->nama_barang . '! Stok tersedia: ' . $barang->stok);
+                    }
+
+                    // Update stok di master_barang
+                    $barang->stok = $barang->stok - $item['quantity'];
+                    $barang->updated_by = $this->getCurrentUserId();
+                    $barang->save();
+
+                    // Simpan ke barang_keluar
+                    BarangKeluar::create([
+                        'barcode' => $item['barcode'],
+                        'jumlah_keluar' => $item['quantity'],
+                        'tanggal' => $currentTime->toDateString(),
+                        'keterangan' => 'Quick scan dari dashboard',
+                        'created_by' => $this->getCurrentUserId(),
+                    ]);
+
+                    Log::info('Barang keluar via quick scan', [
+                        'barcode' => $item['barcode'],
+                        'nama_barang' => $barang->nama_barang,
+                        'jumlah_keluar' => $item['quantity'],
+                        'tanggal' => $currentTime->toDateString(),
+                        'user' => Session::get('user_username')
+                    ]);
+                }
+            });
+
+            return response()->json(['success' => true, 'message' => 'Barang keluar berhasil dicatat!']);
+        } catch (\Exception $e) {
+            Log::error('Error quick scan barang keluar', [
+                'error' => $e->getMessage(),
+                'user' => Session::get('user_username')
+            ]);
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+    }
+
     // ========== BARANG RETUR ==========
     public function barangRetur(Request $request)
     {

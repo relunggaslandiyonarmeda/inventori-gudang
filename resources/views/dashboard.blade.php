@@ -181,6 +181,255 @@
 </div>
 @endif
 
+<!-- Quick Scanner Barang Keluar -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-camera me-2"></i>Quick Scan Barang Keluar
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-4">
+            <!-- Scanner Section -->
+            <div class="col-lg-6">
+                <div class="scanner-container mb-3" id="dashboard-scanner-container">
+                    <div id="dashboard-interactive" class="viewport"></div>
+                    <div class="scanner-overlay"></div>
+                    <div class="scanner-hint">
+                        <i class="bi bi-camera-video me-1"></i>
+                        Arahkan kamera ke barcode
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button onclick="startDashboardScanner()" class="btn btn-primary">
+                        <i class="bi bi-play-fill me-2"></i>Mulai Scanner
+                    </button>
+                    <button onclick="stopDashboardScanner()" class="btn btn-outline-danger">
+                        <i class="bi bi-stop-fill me-2"></i>Stop Scanner
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scanned Items Section -->
+            <div class="col-lg-6">
+                <h6>Barang yang di-scan:</h6>
+                <div id="scanned-items" class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
+                    <div class="list-group-item text-muted text-center">
+                        Belum ada barang yang di-scan
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <button onclick="submitScannedItems()" class="btn btn-success" id="submit-scan-btn" disabled>
+                        <i class="bi bi-check-circle me-2"></i>Simpan Semua Scan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Rest of dashboard content remains below -->
 
+@endsection
+
+@section('scripts')
+<script>
+let dashboardScannerActive = false;
+let scannedItems = {};
+
+function startDashboardScanner() {
+    if (dashboardScannerActive) return;
+
+    Quagga.offDetected();
+
+    Quagga.init({
+        inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: document.querySelector('#dashboard-interactive'),
+            constraints: {
+                facingMode: "environment",
+                width: { min: 640, ideal: 1280, max: 1920 },
+                height: { min: 480, ideal: 720, max: 1080 }
+            }
+        },
+        locator: {
+            patchSize: "medium",
+            halfSample: true
+        },
+        numOfWorkers: navigator.hardwareConcurrency || 4,
+        decoder: {
+            readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "upc_reader", "upc_e_reader", "code_93_reader"]
+        },
+        locate: true
+    }, function(err) {
+        if (err) {
+            console.log(err);
+            let errorMessage = 'Gagal memulai kamera: ' + err.message + '\n\n';
+
+            if (err.name === 'NotAllowedError') {
+                errorMessage += 'SOLUSI:\n' +
+                    '1. Klik ikon 🔒/🔓 di address bar\n' +
+                    '2. Izinkan akses kamera untuk situs ini\n' +
+                    '3. Atau gunakan HTTPS untuk aksesScanner';
+            } else if (err.name === 'NotFoundError') {
+                errorMessage += 'SOLUSI: Pastikan perangkat memiliki kamera.';
+            } else if (err.name === 'NotReadableError') {
+                errorMessage += 'SOLUSI: Kamera sedang digunakan aplikasi lain.';
+            } else {
+                errorMessage += 'Pastikan kamera diizinkan dan tidak digunakan aplikasi lain.';
+            }
+
+            alert(errorMessage);
+            return;
+        }
+
+        Quagga.onDetected(function(result) {
+            if (result.codeResult && result.codeResult.code) {
+                const code = result.codeResult.code;
+                addScannedItem(code);
+
+                let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPJH/m7eqnYyAO');
+                audio.play().catch(() => {});
+            }
+        });
+
+        Quagga.start();
+        dashboardScannerActive = true;
+    });
+}
+
+function stopDashboardScanner() {
+    if (!dashboardScannerActive) return;
+    Quagga.stop();
+    dashboardScannerActive = false;
+}
+
+function addScannedItem(barcode) {
+    if (scannedItems[barcode]) {
+        scannedItems[barcode].quantity++;
+    } else {
+        scannedItems[barcode] = {
+            barcode: barcode,
+            quantity: 1,
+            name: 'Loading...'
+        };
+        // Fetch item name
+        fetchItemName(barcode);
+    }
+    updateScannedItemsDisplay();
+}
+
+function fetchItemName(barcode) {
+    fetch('{{ url("/search-barang") }}?q=' + encodeURIComponent(barcode))
+        .then(response => response.json())
+        .then(data => {
+            const item = data.find(item => item.barcode === barcode);
+            if (item) {
+                scannedItems[barcode].name = item.nama_barang;
+                scannedItems[barcode].stok = item.stok;
+                updateScannedItemsDisplay();
+            } else {
+                scannedItems[barcode].name = 'Barang tidak ditemukan';
+                scannedItems[barcode].stok = 0;
+                updateScannedItemsDisplay();
+            }
+        })
+        .catch(() => {
+            scannedItems[barcode].name = 'Error loading';
+            updateScannedItemsDisplay();
+        });
+}
+
+function updateScannedItemsDisplay() {
+    const container = document.getElementById('scanned-items');
+    const submitBtn = document.getElementById('submit-scan-btn');
+
+    if (Object.keys(scannedItems).length === 0) {
+        container.innerHTML = '<div class="list-group-item text-muted text-center">Belum ada barang yang di-scan</div>';
+        submitBtn.disabled = true;
+        return;
+    }
+
+    let html = '';
+    for (const [barcode, item] of Object.entries(scannedItems)) {
+        const stockStatus = item.stok >= item.quantity ? 'text-success' : 'text-danger';
+        const stockIcon = item.stok >= item.quantity ? 'bi-check-circle' : 'bi-exclamation-triangle';
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${item.name}</strong><br>
+                    <small class="text-muted">Barcode: ${barcode} | Qty: ${item.quantity}</small>
+                </div>
+                <div class="text-end">
+                    <span class="${stockStatus}">
+                        <i class="bi ${stockIcon} me-1"></i>
+                        Stok: ${item.stok}
+                    </span>
+                    <button onclick="removeScannedItem('${barcode}')" class="btn btn-sm btn-outline-danger ms-2">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    container.innerHTML = html;
+    submitBtn.disabled = false;
+}
+
+function removeScannedItem(barcode) {
+    delete scannedItems[barcode];
+    updateScannedItemsDisplay();
+}
+
+function submitScannedItems() {
+    if (Object.keys(scannedItems).length === 0) return;
+
+    // Check if any item has insufficient stock
+    const insufficientStock = Object.values(scannedItems).filter(item => item.stok < item.quantity);
+    if (insufficientStock.length > 0) {
+        alert('Beberapa barang memiliki stok tidak cukup:\n' +
+              insufficientStock.map(item => `${item.name}: Stok ${item.stok}, Scan ${item.quantity}`).join('\n'));
+        return;
+    }
+
+    const submitBtn = document.getElementById('submit-scan-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Menyimpan...';
+
+    fetch('{{ route("barang.keluar.quick.scan") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({
+            items: Object.values(scannedItems).map(item => ({
+                barcode: item.barcode,
+                quantity: item.quantity
+            }))
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Barang keluar berhasil disimpan!');
+            scannedItems = {};
+            updateScannedItemsDisplay();
+            // Reload page to update stats
+            location.reload();
+        } else {
+            alert('Error: ' + data.message);
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Semua Scan';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Terjadi kesalahan saat menyimpan data');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Semua Scan';
+    });
+}
+</script>
 @endsection
