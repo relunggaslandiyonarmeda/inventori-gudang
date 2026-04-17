@@ -228,8 +228,6 @@
     </div>
 </div>
 
-<!-- Rest of dashboard content remains below -->
-
 @endsection
 
 @section('scripts')
@@ -308,37 +306,34 @@ function stopDashboardScanner() {
 function addScannedItem(barcode) {
     if (scannedItems[barcode]) {
         scannedItems[barcode].quantity++;
+        updateScannedItemsDisplay();
     } else {
-        scannedItems[barcode] = {
-            barcode: barcode,
-            quantity: 1,
-            name: 'Loading...'
-        };
-        // Fetch item name
-        fetchItemName(barcode);
+        fetch('{{ url("/search-barang") }}?q=' + encodeURIComponent(barcode))
+            .then(response => response.json())
+            .then(data => {
+                const item = data.find(i => i.barcode === barcode);
+                if (item) {
+                    scannedItems[barcode] = {
+                        barcode: barcode,
+                        quantity: 1,
+                        name: item.nama_barang,
+                        stok: item.stok
+                    };
+                    updateScannedItemsDisplay();
+                    playSuccessSound();
+                } else {
+                    // Silent - barcode not registered
+                }
+            })
+            .catch(() => {
+                // Silent - network error
+            });
     }
-    updateScannedItemsDisplay();
 }
 
-function fetchItemName(barcode) {
-    fetch('{{ url("/search-barang") }}?q=' + encodeURIComponent(barcode))
-        .then(response => response.json())
-        .then(data => {
-            const item = data.find(item => item.barcode === barcode);
-            if (item) {
-                scannedItems[barcode].name = item.nama_barang;
-                scannedItems[barcode].stok = item.stok;
-                updateScannedItemsDisplay();
-            } else {
-                scannedItems[barcode].name = 'Barang tidak ditemukan';
-                scannedItems[barcode].stok = 0;
-                updateScannedItemsDisplay();
-            }
-        })
-        .catch(() => {
-            scannedItems[barcode].name = 'Error loading';
-            updateScannedItemsDisplay();
-        });
+function playSuccessSound() {
+    let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPIH/m7eqnYyAO');
+    audio.play().catch(() => {});
 }
 
 function updateScannedItemsDisplay() {
