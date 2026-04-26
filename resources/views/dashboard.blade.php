@@ -234,6 +234,9 @@
 <script>
 let dashboardScannerActive = false;
 let scannedItems = {};
+let lastDashboardScannedCode = '';
+let lastDashboardScanTime = 0;
+const DASHBOARD_SCAN_DELAY = 1500; // 1.5 seconds cooldown
 
 function startDashboardScanner() {
     if (dashboardScannerActive) return;
@@ -285,6 +288,16 @@ function startDashboardScanner() {
         Quagga.onDetected(function(result) {
             if (result.codeResult && result.codeResult.code) {
                 const code = result.codeResult.code;
+                const now = Date.now();
+                
+                // Check if same barcode scanned within delay period
+                if (code === lastDashboardScannedCode && (now - lastDashboardScanTime) < DASHBOARD_SCAN_DELAY) {
+                    return; // Ignore duplicate scan
+                }
+                
+                lastDashboardScannedCode = code;
+                lastDashboardScanTime = now;
+                
                 addScannedItem(code);
 
                 let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPJH/m7eqnYyAO');

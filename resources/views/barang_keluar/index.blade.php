@@ -282,6 +282,9 @@
 @section('scripts')
 <script>
 let scannerActive = false;
+let lastScannedCode = '';
+let lastScanTime = 0;
+const SCAN_DELAY = 1500; // 1.5 seconds cooldown
 
 // Security check removed - allow camera access from HTTP/IP
 
@@ -335,10 +338,20 @@ function startScanner() {
         Quagga.onDetected(function(result) {
             if (result.codeResult && result.codeResult.code) {
                 const code = result.codeResult.code;
+                const now = Date.now();
+                
+                // Check if same barcode scanned within delay period
+                if (code === lastScannedCode && (now - lastScanTime) < SCAN_DELAY) {
+                    return; // Ignore duplicate scan
+                }
+                
+                lastScannedCode = code;
+                lastScanTime = now;
+                
                 document.getElementById('barcode-input').value = code;
                 document.getElementById('barcode-input').focus();
                 
-                let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPIHzn7uypYyEPHn7o7eqoZCEPJH/m7eqnYyAO');
+                let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPJHzn7uypYyEPHn7o7eqoZCEPJH/m7eqnYyAO');
                 audio.play().catch(() => {});
                 
                 stopScanner();
