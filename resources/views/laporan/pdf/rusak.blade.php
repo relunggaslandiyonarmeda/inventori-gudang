@@ -7,10 +7,11 @@
         * {
             box-sizing: border-box;
         }
-        body { 
-            font-family: Arial, sans-serif; 
-            font-size: 10px; 
-            margin: 10px;
+        body {
+            font-family: 'Times New Roman', serif;
+            font-size: 10px;
+            margin: 0.5in;
+            color: #000;
         }
         .header { 
             text-align: center; 
@@ -47,9 +48,9 @@
             vertical-align: middle;
             text-align: center;
         }
-        th { 
-            background-color: #4f46e5; 
-            color: white;
+        th {
+            background-color: #cccccc;
+            color: #000;
             font-weight: bold;
             font-size: 9px;
         }
@@ -57,9 +58,6 @@
         /* Row styling */
         tbody tr:nth-child(even) {
             background-color: #f9f9f9;
-        }
-        tbody tr:hover {
-            background-color: #f0f0f0;
         }
         
         /* Image styling - larger for visibility */
@@ -71,21 +69,14 @@
             margin: 0 auto;
         }
         
-        /* Badge styling */
-        .badge {
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 8px;
-            font-weight: bold;
-        }
-        .badge-hidup { background-color: #10b981; color: white; }
-        .badge-mati { background-color: #ef4444; color: white; }
+
         
-        .footer { 
-            margin-top: 20px; 
+        .footer {
+            margin-top: 20px;
             text-align: right;
             font-size: 10px;
         }
+        .company { font-weight: bold; }
         
         /* Page break handling */
         .page-break {
@@ -128,7 +119,7 @@
     <div class="page-break"></div>
     
     <div class="header">
-        <h1>PT. UNION SAMTOERNA TRIPUTRA PERSADA</h1>
+        <h1>PT. UNION SAMPOERNA TRIPUTRA PERSADA</h1>
         <p class="sub-header">Lampiran data peralatan IT diajukan untuk discrap (Lanjutan)</p>
     </div>
     
@@ -164,9 +155,9 @@
                 <td>{{ $br->lokasi_unit }}</td>
                 <td>
                     @if($br->kondisi_unit == 'hidup')
-                    <span class="badge badge-hidup">Hidup</span>
+                    Hidup
                     @else
-                    <span class="badge badge-mati">Mati</span>
+                    Mati
                     @endif
                 </td>
                 <td>{{ $br->keterangan ?? '-' }}</td>
