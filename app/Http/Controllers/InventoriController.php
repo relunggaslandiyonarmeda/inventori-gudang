@@ -471,10 +471,58 @@ class InventoriController extends Controller
         }
     }
 
-    public function barangKeluarQuickScan(Request $request)
+public function barangKeluarScannerInput(Request $request)
     {
         $authCheck = $this->checkAuth();
         if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+
+        $request->validate([
+            'barcode' => 'required|string|exists:master_barang,barcode',
+            'quantity' => 'nullable|integer|min:1',
+        ]);
+
+        try {
+            $barang = MasterBarang::findOrFail($request->barcode);
+            $quantity = $request->quantity ?? 1;
+
+            if ($barang->stok < $quantity) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stok tidak cukup! Stok tersedia: ' . $barang->stok
+                ], 400);
+            }
+
+            DB::transaction(function () use ($request, $quantity, $barang) {
+                $barang->stok = $barang->stok - $quantity;
+                $barang->updated_by = $this->getCurrentUserId();
+                $barang->save();
+
+                BarangKeluar::create([
+                    'barcode' => $request->barcode,
+                    'jumlah_keluar' => $quantity,
+                    'tanggal' => now()->toDateString(),
+                    'keterangan' => 'Scan dari Panda PRJ 777 (Dashboard)',
+                    'created_by' => $this->getCurrentUserId(),
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Berhasil: ' . $barang->nama_barang . ' (' . $quantity . ')',
+                'barang' => [
+                    'nama_barang' => $barang->nama_barang,
+                    'stok_baru' => $barang->stok
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function barangKeluarQuickScan(Request $request)
+     {
+         $authCheck = $this->checkAuth();
+         if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $request->validate([
             'items' => 'required|array',

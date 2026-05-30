@@ -69,6 +69,7 @@ Route::middleware(['admin.auth'])->group(function () {
     Route::post('/barang-keluar', [InventoriController::class, 'barangKeluarStore'])->name('barang.keluar.store');
     Route::post('/barang-keluar-manual', [InventoriController::class, 'barangKeluarManual'])->name('barang.keluar.manual');
     Route::post('/barang-keluar-quick-scan', [InventoriController::class, 'barangKeluarQuickScan'])->name('barang.keluar.quick.scan');
+    Route::post('/barang-keluar/scanner-input', [InventoriController::class, 'barangKeluarScannerInput'])->name('barang.keluar.scanner.input');
     Route::get('/barang-keluar/riwayat', [InventoriController::class, 'barangKeluarRiwayat'])->name('barang.keluar.riwayat');
 
     // Laporan

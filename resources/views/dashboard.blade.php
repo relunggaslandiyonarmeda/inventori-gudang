@@ -181,47 +181,60 @@
 </div>
 @endif
 
-<!-- Quick Scanner Barang Keluar -->
+<!-- Panda PRJ 777 Scanner Barang Keluar -->
 <div class="card mb-4">
-    <div class="card-header">
+    <div class="card-header bg-primary text-white">
         <h5 class="mb-0">
-            <i class="bi bi-camera me-2"></i>Quick Scan Barang Keluar
+            <i class="bi bi-upc-scan me-2"></i>Scanner Barang Keluar (Panda PRJ 777)
         </h5>
     </div>
     <div class="card-body">
+        <div class="text-center mb-4">
+            <div class="scanner-icon mb-3">
+                <i class="bi bi-upc-scan text-primary" style="font-size: 4rem;"></i>
+            </div>
+            <h5 class="text-primary">Scanner Panda PRJ 777 Ready</h5>
+            <p class="text-muted mb-0">Scan barcode barang, lalu klik "Proses" untuk mengurangi stok</p>
+        </div>
+        
         <div class="row g-4">
-            <!-- Scanner Section -->
             <div class="col-lg-6">
-                <div class="scanner-container mb-3" id="dashboard-scanner-container">
-                    <div id="dashboard-interactive" class="viewport"></div>
-                    <div class="scanner-overlay"></div>
-                    <div class="scanner-hint">
-                        <i class="bi bi-camera-video me-1"></i>
-                        Arahkan kamera ke barcode
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="bi bi-upc text-primary me-1"></i>
+                        Barcode (Scan dengan Panda PRJ 777)
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                        <input type="text" id="scanner-input" class="form-control" 
+                               placeholder="Scan barcode dengan Panda PRJ 777..." 
+                               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    </div>
+                    <small class="text-muted">Tekan Enter atau gunakan tombol scan pada perangkat</small>
+                </div>
+                
+                <div id="pending-items" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;">
+                    <div class="list-group-item text-muted text-center">
+                        Belum ada barang yang discan
                     </div>
                 </div>
+                
                 <div class="d-grid gap-2">
-                    <button onclick="startDashboardScanner()" class="btn btn-primary">
-                        <i class="bi bi-play-fill me-2"></i>Mulai Scanner
+                    <button onclick="processAllScans()" class="btn btn-success" id="process-btn" disabled>
+                        <i class="bi bi-check-circle me-2"></i>Proses Semua Scan
                     </button>
-                    <button onclick="stopDashboardScanner()" class="btn btn-outline-danger">
-                        <i class="bi bi-stop-fill me-2"></i>Stop Scanner
+                    <button onclick="clearPendingItems()" class="btn btn-outline-danger">
+                        <i class="bi bi-trash me-2"></i>Bersihkan Daftar
                     </button>
                 </div>
             </div>
-
-            <!-- Scanned Items Section -->
+            
             <div class="col-lg-6">
-                <h6>Barang yang di-scan:</h6>
-                <div id="scanned-items" class="list-group mb-3" style="max-height: 300px; overflow-y: auto;">
+                <h6><i class="bi bi-clock-history me-2"></i>Riwayat Scan Terbaru</h6>
+                <div id="scanner-history" class="list-group" style="max-height: 300px; overflow-y: auto;">
                     <div class="list-group-item text-muted text-center">
-                        Belum ada barang yang di-scan
+                        Belum ada data scan
                     </div>
-                </div>
-                <div class="d-grid">
-                    <button onclick="submitScannedItems()" class="btn btn-success" id="submit-scan-btn" disabled>
-                        <i class="bi bi-check-circle me-2"></i>Simpan Semua Scan
-                    </button>
                 </div>
             </div>
         </div>
@@ -232,149 +245,126 @@
 
 @section('scripts')
 <script>
-let dashboardScannerActive = false;
-let scannedItems = {};
-let lastDashboardScannedCode = '';
-let lastDashboardScanTime = 0;
-const DASHBOARD_SCAN_DELAY = 1500; // 1.5 seconds cooldown
+let lastScannedCodes = {};
+const SCAN_COOLDOWN = 1500;
+let pendingItems = {};
 
-function startDashboardScanner() {
-    if (dashboardScannerActive) return;
+const scannerHistory = [];
 
-    Quagga.offDetected();
-
-    Quagga.init({
-        inputStream: {
-            name: "Live",
-            type: "LiveStream",
-            target: document.querySelector('#dashboard-interactive'),
-            constraints: {
-                facingMode: "environment",
-                width: { min: 640, ideal: 1280, max: 1920 },
-                height: { min: 480, ideal: 720, max: 1080 }
-            }
-        },
-        locator: {
-            patchSize: "medium",
-            halfSample: true
-        },
-        numOfWorkers: navigator.hardwareConcurrency || 4,
-        decoder: {
-            readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "upc_reader", "upc_e_reader", "code_93_reader"]
-        },
-        locate: true
-    }, function(err) {
-        if (err) {
-            console.log(err);
-            let errorMessage = 'Gagal memulai kamera: ' + err.message + '\n\n';
-
-            if (err.name === 'NotAllowedError') {
-                errorMessage += 'SOLUSI:\n' +
-                    '1. Klik ikon 🔒/🔓 di address bar\n' +
-                    '2. Izinkan akses kamera untuk situs ini\n' +
-                    '3. Atau gunakan HTTPS untuk aksesScanner';
-            } else if (err.name === 'NotFoundError') {
-                errorMessage += 'SOLUSI: Pastikan perangkat memiliki kamera.';
-            } else if (err.name === 'NotReadableError') {
-                errorMessage += 'SOLUSI: Kamera sedang digunakan aplikasi lain.';
-            } else {
-                errorMessage += 'Pastikan kamera diizinkan dan tidak digunakan aplikasi lain.';
-            }
-
-            alert(errorMessage);
-            return;
-        }
-
-        Quagga.onDetected(function(result) {
-            if (result.codeResult && result.codeResult.code) {
-                const code = result.codeResult.code;
-                const now = Date.now();
-                
-                // Check if same barcode scanned within delay period
-                if (code === lastDashboardScannedCode && (now - lastDashboardScanTime) < DASHBOARD_SCAN_DELAY) {
-                    return; // Ignore duplicate scan
-                }
-                
-                lastDashboardScannedCode = code;
-                lastDashboardScanTime = now;
-                
-                addScannedItem(code);
-
-                let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPJH/m7eqnYyAO');
-                audio.play().catch(() => {});
-            }
-        });
-
-        Quagga.start();
-        dashboardScannerActive = true;
+function addToHistory(barcode, nama_barang, success) {
+    const time = new Date().toLocaleTimeString('id-ID');
+    scannerHistory.unshift({
+        barcode,
+        nama_barang,
+        success,
+        time
     });
+    
+    if (scannerHistory.length > 10) scannerHistory.pop();
+    
+    updateHistoryDisplay();
 }
 
-function stopDashboardScanner() {
-    if (!dashboardScannerActive) return;
-    Quagga.stop();
-    dashboardScannerActive = false;
-}
-
-function addScannedItem(barcode) {
-    if (scannedItems[barcode]) {
-        scannedItems[barcode].quantity++;
-        updateScannedItemsDisplay();
-    } else {
-        fetch('{{ url("/search-barang") }}?q=' + encodeURIComponent(barcode))
-            .then(response => response.json())
-            .then(data => {
-                const item = data.find(i => i.barcode === barcode);
-                if (item) {
-                    scannedItems[barcode] = {
-                        barcode: barcode,
-                        quantity: 1,
-                        name: item.nama_barang,
-                        stok: item.stok
-                    };
-                    updateScannedItemsDisplay();
-                    playSuccessSound();
-                } else {
-                    // Silent - barcode not registered
-                }
-            })
-            .catch(() => {
-                // Silent - network error
-            });
-    }
-}
-
-function playSuccessSound() {
-    let audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2teleRYAOpjf38mWXB8dPnb08euSXy4SO4Lm6OK2Xx8VQXni7e2wYyEQPIbm6+uuZCEPIH/m7eqnYyAO');
-    audio.play().catch(() => {});
-}
-
-function updateScannedItemsDisplay() {
-    const container = document.getElementById('scanned-items');
-    const submitBtn = document.getElementById('submit-scan-btn');
-
-    if (Object.keys(scannedItems).length === 0) {
-        container.innerHTML = '<div class="list-group-item text-muted text-center">Belum ada barang yang di-scan</div>';
-        submitBtn.disabled = true;
+function updateHistoryDisplay() {
+    const container = document.getElementById('scanner-history');
+    if (scannerHistory.length === 0) {
+        container.innerHTML = '<div class="list-group-item text-muted text-center">Belum ada data scan</div>';
         return;
     }
-
+    
     let html = '';
-    for (const [barcode, item] of Object.entries(scannedItems)) {
+    scannerHistory.forEach(item => {
+        const statusClass = item.success ? 'text-success' : 'text-danger';
+        const statusIcon = item.success ? 'bi-check-circle' : 'bi-x-circle';
+        html += `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${item.nama_barang || item.barcode}</strong>
+                    <br>
+                    <small class="text-muted">
+                        <code>${item.barcode}</code> | ${item.time}
+                    </small>
+                </div>
+                <i class="bi ${statusIcon} ${statusClass}"></i>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+document.getElementById('scanner-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const barcode = this.value.trim();
+        if (barcode.length >= 2) {
+            addToPendingItem(barcode);
+        }
+        this.value = '';
+    }
+});
+
+function addToPendingItem(barcode) {
+    const now = Date.now();
+    
+    if (lastScannedCodes[barcode] && (now - lastScannedCodes[barcode]) < SCAN_COOLDOWN) {
+        return;
+    }
+    
+    lastScannedCodes[barcode] = now;
+    
+    fetch('{{ url("/search-barang") }}?q=' + encodeURIComponent(barcode))
+        .then(response => response.json())
+        .then(data => {
+            const item = data.find(i => i.barcode === barcode);
+            if (item) {
+                if (pendingItems[barcode]) {
+                    pendingItems[barcode].quantity++;
+                } else {
+                    pendingItems[barcode] = {
+                        barcode: barcode,
+                        quantity: 1,
+                        nama_barang: item.nama_barang,
+                        stok: item.stok
+                    };
+                }
+                updatePendingItemsDisplay();
+            }
+        })
+        .catch(() => {});
+}
+
+function updatePendingItemsDisplay() {
+    const container = document.getElementById('pending-items');
+    const processBtn = document.getElementById('process-btn');
+    
+    if (Object.keys(pendingItems).length === 0) {
+        container.innerHTML = '<div class="list-group-item text-muted text-center">Belum ada barang yang discan</div>';
+        processBtn.disabled = true;
+        return;
+    }
+    
+    processBtn.disabled = false;
+    
+    let html = '';
+    for (const [barcode, item] of Object.entries(pendingItems)) {
         const stockStatus = item.stok >= item.quantity ? 'text-success' : 'text-danger';
         const stockIcon = item.stok >= item.quantity ? 'bi-check-circle' : 'bi-exclamation-triangle';
         html += `
             <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>${item.name}</strong><br>
-                    <small class="text-muted">Barcode: ${barcode} | Qty: ${item.quantity}</small>
+                    <strong>${item.nama_barang}</strong>
+                    <br>
+                    <small class="text-muted">
+                        <code>${barcode}</code> | Qty: ${item.quantity}
+                    </small>
                 </div>
                 <div class="text-end">
                     <span class="${stockStatus}">
                         <i class="bi ${stockIcon} me-1"></i>
                         Stok: ${item.stok}
                     </span>
-                    <button onclick="removeScannedItem('${barcode}')" class="btn btn-sm btn-outline-danger ms-2">
+                    <br>
+                    <button onclick="removePendingItem('${barcode}')" class="btn btn-sm btn-outline-danger">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
@@ -382,29 +372,35 @@ function updateScannedItemsDisplay() {
         `;
     }
     container.innerHTML = html;
-    submitBtn.disabled = false;
 }
 
-function removeScannedItem(barcode) {
-    delete scannedItems[barcode];
-    updateScannedItemsDisplay();
+function removePendingItem(barcode) {
+    delete pendingItems[barcode];
+    updatePendingItemsDisplay();
 }
 
-function submitScannedItems() {
-    if (Object.keys(scannedItems).length === 0) return;
+function clearPendingItems() {
+    pendingItems = {};
+    updatePendingItemsDisplay();
+}
 
-    // Check if any item has insufficient stock
-    const insufficientStock = Object.values(scannedItems).filter(item => item.stok < item.quantity);
-    if (insufficientStock.length > 0) {
-        alert('Beberapa barang memiliki stok tidak cukup:\n' +
-              insufficientStock.map(item => `${item.name}: Stok ${item.stok}, Scan ${item.quantity}`).join('\n'));
-        return;
+function processAllScans() {
+    if (Object.keys(pendingItems).length === 0) return;
+    
+    // Check stock
+    const insufficient = Object.values(pendingItems).filter(item => item.stok < item.quantity);
+    if (insufficient.length > 0) {
+        if (!confirm('Beberapa barang stoknya tidak cukup:\n' + 
+            insufficient.map(i => `${i.nama_barang}: stok ${i.stok}, butuh ${i.quantity}`).join('\n') + 
+            '\n\nLanjutkan?')) {
+            return;
+        }
     }
-
-    const submitBtn = document.getElementById('submit-scan-btn');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Menyimpan...';
-
+    
+    const processBtn = document.getElementById('process-btn');
+    processBtn.disabled = true;
+    processBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Menyimpan...';
+    
     fetch('{{ route("barang.keluar.quick.scan") }}', {
         method: 'POST',
         headers: {
@@ -412,7 +408,7 @@ function submitScannedItems() {
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         },
         body: JSON.stringify({
-            items: Object.values(scannedItems).map(item => ({
+            items: Object.values(pendingItems).map(item => ({
                 barcode: item.barcode,
                 quantity: item.quantity
             }))
@@ -421,23 +417,27 @@ function submitScannedItems() {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Barang keluar berhasil disimpan!');
-            scannedItems = {};
-            updateScannedItemsDisplay();
-            // Reload page to update stats
-            location.reload();
+            Object.values(pendingItems).forEach(item => {
+                addToHistory(item.barcode, item.nama_barang, true);
+            });
+            pendingItems = {};
+            updatePendingItemsDisplay();
+            processBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Berhasil!';
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
         } else {
+            processBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Proses Semua Scan';
+            processBtn.disabled = false;
             alert('Error: ' + data.message);
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Semua Scan';
         }
     })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Terjadi kesalahan saat menyimpan data');
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Simpan Semua Scan';
+    .catch(() => {
+        processBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Proses Semua Scan';
+        processBtn.disabled = false;
     });
 }
+
+document.getElementById('scanner-input').focus();
 </script>
 @endsection
