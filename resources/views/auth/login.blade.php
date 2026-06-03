@@ -281,10 +281,10 @@
             </div>
             
             <div class="login-body">
-                @if(Session::has('error'))
+                @if(session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     <i class="bi bi-exclamation-circle me-2"></i>
-                    {{ Session::get('error') }}
+                    {{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
                 @endif

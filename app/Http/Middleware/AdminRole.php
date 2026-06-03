@@ -4,7 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class AdminRole
@@ -17,39 +17,40 @@ class AdminRole
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if (!Auth::check()) {
+            return redirect()->route('login');
+        }
+
+        $user = Auth::user();
+
         // Admin has full access
-        if (Session::get('user_role') === 'admin') {
+        if ($user->role === 'admin') {
             return $next($request);
         }
-        
+
         // For non-admin users, check menu_permissions
-        $userRole = Session::get('user_role');
-        if ($userRole !== 'admin') {
-            // Get the current route path to determine which menu permission is needed
-            $currentPath = $request->path();
-            
-            // Map routes to menu permissions
-            $routePermissions = [
-                'master-barang' => 'master_barang',
-                'barang-retur' => 'barang_retur',
-                'barang-rusak' => 'barang_rusak',
-                'laporan-rak' => 'laporan_rak',
-                'laporan-rusak' => 'laporan_rusak',
-                'users' => 'users',
-            ];
-            
-            // Check each route prefix
-            foreach ($routePermissions as $route => $permission) {
-                if (str_starts_with($currentPath, $route)) {
-                    $permissions = Session::get('user_menu_permissions', []);
-                    if (!in_array($permission, $permissions)) {
-                        return redirect()->route('dashboard')->with('error', 'Akses ditolak. Anda tidak memiliki izin untuk mengakses halaman tersebut.');
-                    }
-                    break;
+        $currentPath = $request->path();
+
+        // Map routes to menu permissions
+        $routePermissions = [
+            'master-barang' => 'master_barang',
+            'barang-retur' => 'barang_retur',
+            'barang-rusak' => 'barang_rusak',
+            'laporan-rak' => 'laporan_rak',
+            'laporan-rusak' => 'laporan_rusak',
+            'users' => 'users',
+        ];
+
+        // Check each route prefix
+        foreach ($routePermissions as $route => $permission) {
+            if (str_starts_with($currentPath, $route)) {
+                if (!$user->hasMenuAccess($permission)) {
+                    return redirect()->route('dashboard')->with('error', 'Akses ditolak. Anda tidak memiliki izin untuk mengakses halaman tersebut.');
                 }
+                break;
             }
         }
-        
+
         return $next($request);
     }
 }

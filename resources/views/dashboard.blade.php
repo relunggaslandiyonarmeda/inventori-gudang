@@ -37,7 +37,7 @@
 
 <!-- Statistics Cards -->
 <div class="row g-4 mb-4">
-    @if(Session::get('user_role') === 'admin')
+    @if(auth()->user()->role === 'admin')
     <!-- Total Barang -->
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="card stat-card h-100">

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
@@ -18,37 +18,37 @@
     
     <style>
         /* ========================================
-           CSS VARIABLES - Elegant Professional Theme
+            CSS VARIABLES - Elegant Professional Theme
         ======================================== */
         :root {
-            --primary-color: #2563eb;
-            --primary-dark: #1d4ed8;
+            --primary-color: #1e40af;
+            --primary-dark: #1e3a8a;
             --primary-light: #3b82f6;
-            --secondary-color: #0284c7;
+            --secondary-color: #0369a1;
             --success-color: #059669;
             --warning-color: #d97706;
             --danger-color: #dc2626;
             --info-color: #0891b2;
             
-            --sidebar-bg: #1e293b;
-            --sidebar-hover: #334155;
-            --sidebar-active: #2563eb;
+            --sidebar-bg: #0f172a;
+            --sidebar-hover: #1e293b;
+            --sidebar-active: #1e40af;
             
-            --body-bg: #f8fafc;
+            --body-bg: #f1f5f9;
             --card-bg: #ffffff;
             --text-primary: #0f172a;
-            --text-secondary: #475569;
+            --text-secondary: #64748b;
             --text-muted: #94a3b8;
             
             --border-color: #e2e8f0;
-            --border-radius: 16px;
-            --border-radius-sm: 12px;
-            --border-radius-lg: 20px;
+            --border-radius: 18px;
+            --border-radius-sm: 14px;
+            --border-radius-lg: 24px;
             
-            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05), 0 1px 1.5px -0.5px rgb(0 0 0 / 0.04);
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+            --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+            --shadow-lg: 0 20px 25px -5px rgb(0 0 0 / 0.12), 0 10px 15px -5px rgb(0 0 0 / 0.08);
             
             --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
             --sidebar-width: 280px;
@@ -592,7 +592,7 @@
         
         .form-control:focus, .form-select:focus {
             border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+            box-shadow: 0 0 0 3px rgba(30,64,175,0.15);
             outline: none;
         }
         
@@ -649,13 +649,13 @@
         .btn-primary {
             background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
             color: #fff;
-            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            box-shadow: 0 4px 12px rgba(30,64,175,0.3);
         }
         
         .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
-            background: linear-gradient(180deg, var(--primary-dark) 0%, #1e40af 100%);
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(30,64,175,0.4);
+            background: linear-gradient(180deg, var(--primary-dark) 0%, var(--sidebar-bg) 100%);
         }
         
         .btn-primary:active {
@@ -665,7 +665,16 @@
         .btn-success {
             background: linear-gradient(180deg, var(--success-color) 0%, #047857 100%);
             color: #fff;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+            box-shadow: 0 4px 12px rgba(5,150,105,0.3);
+        }
+        
+        .btn-success:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(5,150,105,0.4);
+        }
+        
+        .btn-success:active {
+            transform: translateY(0);
         }
         
         .btn-success:hover {
@@ -677,7 +686,16 @@
         .btn-danger {
             background: linear-gradient(180deg, var(--danger-color) 0%, #b91c1c 100%);
             color: #fff;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+            box-shadow: 0 4px 12px rgba(220,38,38,0.3);
+        }
+        
+        .btn-danger:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(220,38,38,0.4);
+        }
+        
+        .btn-danger:active {
+            transform: translateY(0);
         }
         
         .btn-danger:hover {
@@ -690,7 +708,16 @@
             background: linear-gradient(180deg, var(--warning-color) 0%, #b45309 100%);
             border: none;
             color: #fff;
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
+            box-shadow: 0 4px 12px rgba(217,119,6,0.3);
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 20px rgba(217,119,6,0.4);
+        }
+        
+        .btn-warning:active {
+            transform: translateY(0);
         }
         
         .btn-warning:hover {
@@ -801,63 +828,118 @@
         }
 
         /* ========================================
-           SCANNER
+            SCANNER
         ======================================== */
-        .scanner-container {
-            width: 100%;
-            max-width: 100%;
-            height: 300px;
-            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            border-radius: var(--border-radius-lg);
-            overflow: hidden;
-            position: relative;
-            border: 3px solid rgba(255,255,255,0.2);
-            box-shadow: var(--shadow-lg);
-            backdrop-filter: saturate(180%) blur(10px);
-        }
+.scanner-container {
+    width: 100%;
+    max-width: 100%;
+    height: 300px;
+    background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    position: relative;
+    border: 3px solid rgba(255,255,255,0.2);
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: saturate(180%) blur(10px);
+}
         
         .scanner-container video,
-        .scanner-container canvas,
-        .scanner-container #interactive {
+        .scanner-container canvas {
             width: 100% !important;
             height: 100% !important;
             object-fit: cover !important;
         }
         
-        .scanner-container #interactive {
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        
-        .scanner-overlay {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 75%;
-            height: 55%;
-            border: 3px dashed rgba(255,255,255,0.5);
-            border-radius: var(--border-radius-sm);
-            pointer-events: none;
-            animation: pulse 2s infinite;
-        }
-        
-        .scanner-hint {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255,255,255,0.8);
-            font-size: 13px;
-            font-weight: 500;
-            text-align: center;
-            background: rgba(0,0,0,0.3);
-            padding: 8px 16px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.2);
-        }
+.scanner-container #interactive {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.scanner-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 50%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.scanner-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 2px dashed rgba(255, 255, 255, 0.4);
+    border-radius: 6px;
+}
+
+.scanner-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    background:
+        linear-gradient(to right,  #fff 0%, #fff 4px, transparent 4px) 0 0 / 24px 4px no-repeat,
+        linear-gradient(to bottom, #fff 0%, #fff 4px, transparent 4px) 0 0 / 4px 24px no-repeat,
+        linear-gradient(to left,   #fff 0%, #fff 4px, transparent 4px) 100% 0 / 24px 4px no-repeat,
+        linear-gradient(to bottom, #fff 0%, #fff 4px, transparent 4px) 100% 0 / 4px 24px no-repeat,
+        linear-gradient(to right,  #fff 0%, #fff 4px, transparent 4px) 0 100% / 24px 4px no-repeat,
+        linear-gradient(to top,    #fff 0%, #fff 4px, transparent 4px) 0 100% / 4px 24px no-repeat,
+        linear-gradient(to left,   #fff 0%, #fff 4px, transparent 4px) 100% 100% / 24px 4px no-repeat,
+        linear-gradient(to top,    #fff 0%, #fff 4px, transparent 4px) 100% 100% / 4px 24px no-repeat;
+}
+
+.scanner-line {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 50%;
+    pointer-events: none;
+    z-index: 11;
+    overflow: hidden;
+    border-radius: 6px;
+}
+
+.scanner-line::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(to right, transparent, rgba(0, 220, 130, 0.9), transparent);
+    box-shadow: 0 0 8px rgba(0, 220, 130, 0.7);
+    animation: scanLine 2s ease-in-out infinite;
+}
+
+@keyframes scanLine {
+    0%   { top: 0; }
+    50%  { top: calc(100% - 3px); }
+    100% { top: 0; }
+}
+
+.scanner-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    background: rgba(0,0,0,0.35);
+    padding: 7px 16px;
+    border-radius: 20px;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.2);
+    z-index: 12;
+}
 
         /* ========================================
            TABS
@@ -1384,7 +1466,7 @@
     </style>
 </head>
 <body>
-    @if(Session::get('user_logged_in'))
+    @if(auth()->check())
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-fixed">
         <div class="container-fluid">
@@ -1398,8 +1480,8 @@
             <!-- Global Search -->
             <form class="global-search-wrapper" onsubmit="return false;">
                 <div class="input-group input-group-sm">
-                    <input type="text" class="form-control" id="globalSearchInput" placeholder="Cari..." style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; font-size: 13px;" autocomplete="off">
-                    <button class="btn btn-outline-light" type="button" style="border-color: rgba(255,255,255,0.4);">
+                     <input type="text" class="form-control" id="globalSearchInput" placeholder="Cari..." style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: #fff; font-size: 13px;" autocomplete="off">
+                     <button class="btn btn-outline-light" type="button" style="border-color: rgba(255,255,255,0.3);">
                         <i class="bi bi-search"></i>
                     </button>
                 </div>
@@ -1408,9 +1490,9 @@
             
             <div class="user-info">
                 <a href="{{ route('profile') }}" class="user-name d-none d-md-inline text-decoration-none text-white">
-                    {{ Session::get('user_name') }}
+                    {{ auth()->user()->name }}
                 </a>
-                @if(Session::get('user_role') === 'admin')
+                @if(auth()->user()->role === 'admin')
                 <span class="badge bg-danger ms-2 px-3 py-1">
                     <i class="bi bi-shield-lock me-1"></i> Admin
                 </span>
@@ -1420,8 +1502,8 @@
                 </span>
                 @endif
                 <a href="{{ route('profile') }}" class="user-avatar text-decoration-none">
-                    @if(Session::get('user_profile_photo'))
-                    <img src="{{ asset('storage/profile_photos/' . Session::get('user_profile_photo')) }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                    @if(auth()->user()->profile_photo)
+                    <img src="{{ asset('storage/profile_photos/' . auth()->user()->profile_photo) }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
                     @else
                     <i class="bi bi-person"></i>
                     @endif
@@ -1454,7 +1536,7 @@
                 </a>
             </li>
             
-            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('master_barang', Session::get('user_menu_permissions', []))))
+            @if(auth()->user()->role === 'admin' || (is_array(auth()->user()->menu_permissions ?? []) && in_array('master_barang', auth()->user()->menu_permissions ?? [])))
             <li class="sidebar-menu-item menu-master">
                 <a class="{{ Request::is('master-barang*') ? 'active' : '' }}" href="{{ route('master.barang') }}">
                     <i class="bi bi-box-seam"></i>
@@ -1472,7 +1554,7 @@
             </li>
             @endif
             
-            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_masuk', Session::get('user_menu_permissions', []))))
+            @if(auth()->user()->role === 'admin' || (is_array(auth()->user()->menu_permissions ?? []) && in_array('barang_masuk', auth()->user()->menu_permissions ?? [])))
             <li class="sidebar-menu-item menu-masuk">
                 <a class="{{ Request::is('barang-masuk*') ? 'active' : '' }}" href="{{ route('barang.masuk') }}">
                     <i class="bi bi-arrow-down-circle"></i>
@@ -1490,7 +1572,7 @@
             </li>
             @endif
             
-            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_keluar', Session::get('user_menu_permissions', []))))
+            @if(auth()->user()->role === 'admin' || (is_array(auth()->user()->menu_permissions ?? []) && in_array('barang_keluar', auth()->user()->menu_permissions ?? [])))
             <li class="sidebar-menu-item menu-keluar">
                 <a class="{{ Request::is('barang-keluar*') ? 'active' : '' }}" href="{{ route('barang.keluar') }}">
                     <i class="bi bi-arrow-up-circle"></i>
@@ -1508,7 +1590,7 @@
             </li>
             @endif
             
-            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_retur', Session::get('user_menu_permissions', []))))
+            @if(auth()->user()->role === 'admin' || (is_array(auth()->user()->menu_permissions ?? []) && in_array('barang_retur', auth()->user()->menu_permissions ?? [])))
             <li class="sidebar-menu-item menu-retur">
                 <a class="{{ Request::is('barang-retur*') ? 'active' : '' }}" href="{{ route('barang.retur') }}">
                     <i class="bi bi-arrow-return-left"></i>
@@ -1526,7 +1608,7 @@
             </li>
             @endif
 
-            @if(Session::get('user_role') === 'admin' || (is_array(Session::get('user_menu_permissions', [])) && in_array('barang_rusak', Session::get('user_menu_permissions', []))))
+            @if(auth()->user()->role === 'admin' || (is_array(auth()->user()->menu_permissions ?? []) && in_array('barang_rusak', auth()->user()->menu_permissions ?? [])))
             <li class="sidebar-menu-item menu-rusak">
                 <a class="{{ Request::is('barang-rusak*') ? 'active' : '' }}" href="{{ route('barang.rusak') }}">
                     <i class="bi bi-exclamation-triangle"></i>
@@ -1553,7 +1635,7 @@
                 </a>
             </li>
             
-            @if(Session::get('user_role') === 'admin')
+            @if(auth()->user()->role === 'admin')
             <li class="sidebar-menu-item menu-laporan">
                 <a class="{{ Request::is('laporan-rak*') ? 'active' : '' }}" href="{{ route('laporan.rak') }}">
                     <i class="bi bi-boxes"></i>

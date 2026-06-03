@@ -34,6 +34,7 @@ Route::middleware(['admin.auth'])->group(function () {
         Route::put('/master-barang/{barcode}', [InventoriController::class, 'masterBarangUpdate'])->name('master.barang.update');
         Route::delete('/master-barang/{barcode}', [InventoriController::class, 'masterBarangDestroy'])->name('master.barang.destroy');
         Route::get('/master-barang/riwayat', [InventoriController::class, 'masterBarangRiwayat'])->name('master.barang.riwayat');
+        Route::put('/master-barang/restore/{barcode}', [InventoriController::class, 'masterBarangRestore'])->name('master.barang.restore');
 
         // Barang Retur
         Route::get('/barang-retur', [InventoriController::class, 'barangRetur'])->name('barang.retur');

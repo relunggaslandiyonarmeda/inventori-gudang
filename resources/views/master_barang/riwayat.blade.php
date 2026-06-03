@@ -20,18 +20,18 @@
     </div>
 </div>
 
-@if(Session::has('success'))
+@if(session('success'))
 <div class="alert alert-success alert-dismissible fade show" role="alert">
     <i class="bi bi-check-circle me-2"></i>
-    {{ Session::get('success') }}
+    {{ session('success') }}
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
 
-@if(Session::has('error'))
+@if(session('error'))
 <div class="alert alert-danger alert-dismissible fade show" role="alert">
     <i class="bi bi-exclamation-circle me-2"></i>
-    {{ Session::get('error') }}
+    {{ session('error') }}
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 @endif
@@ -106,6 +106,12 @@
                                 <i class="bi bi-plus-circle me-1"></i>Dibuat
                             </span>
                             @endif
+                            @if($barang->trashed())
+                            <br>
+                            <span class="badge bg-danger-subtle text-danger mt-1">
+                                <i class="bi bi-trash me-1"></i>Terbuang
+                            </span>
+                            @endif
                         </td>
                         <td>
                             @if($barang->updatedBy)
@@ -114,6 +120,16 @@
                             <span class="text-primary">{{ $barang->createdBy->name ?? '-' }}</span>
                             @else
                             <span class="text-muted">-</span>
+                            @endif
+                            @if($barang->trashed())
+                            <br>
+                            <form action="{{ route('master.barang.restore', $barang->barcode) }}" method="POST" class="d-inline mt-1" onsubmit="return confirm('Pulihkan barang ini?')">
+                                @csrf
+                                @method('PUT')
+                                <button type="submit" class="btn btn-sm btn-outline-success" title="Pulihkan">
+                                    <i class="bi bi-arrow-counterclockwise"></i>
+                                </button>
+                            </form>
                             @endif
                         </td>
                         <td>

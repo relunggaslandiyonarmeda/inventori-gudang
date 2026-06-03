@@ -1,4 +1,4 @@
-@extends('layouts.main')
+﻿@extends('layouts.main')
 
 @section('title', 'Barang Masuk')
 
@@ -67,6 +67,7 @@
                         <div class="scanner-container mb-3" id="scanner-container">
                             <div id="interactive" class="viewport"></div>
                             <div class="scanner-overlay"></div>
+                            <div class="scanner-line"></div>
                             <div class="scanner-hint">
                                 <i class="bi bi-camera-video me-1"></i>
                                 Arahkan kamera ke barcode

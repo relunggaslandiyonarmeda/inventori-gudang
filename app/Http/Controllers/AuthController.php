@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -22,51 +22,31 @@ class AuthController extends Controller
      */
     public function login(Request $request)
     {
-        $request->validate([
+        $credentials = $request->validate([
             'username' => 'required',
             'password' => 'required',
         ]);
 
-        $username = $request->input('username');
-        $password = $request->input('password');
-
-        // ===== ADMIN LOGIN (hardcoded) =====
-        if ($username === 'admin' && $password === 'admin123') {
+        // ===== DATABASE USER LOGIN =====
+        if (Auth::attempt(['username' => $credentials['username'], 'password' => $credentials['password']], $request->filled('remember'))) {
             $request->session()->regenerate();
-            
-            Session::put('user_logged_in', true);
-            Session::put('user_id', 'admin');
-            Session::put('user_name', 'Administrator');
-            Session::put('user_username', 'admin');
-            Session::put('user_role', 'admin');
-            Session::put('user_profile_photo', null);
-            Session::put('user_menu_permissions', ['master_barang', 'barang_masuk', 'barang_keluar', 'barang_retur', 'barang_rusak']);
-            
-            if ($request->has('remember')) {
-                cookie()->queue('user_remember', 'admin', 525600);
-            }
-            
             return redirect()->route('dashboard');
         }
 
-        // ===== DATABASE USER LOGIN =====
-        $user = User::where('username', $username)->first();
-        
-        if ($user && Hash::check($password, $user->password)) {
+        // ===== ADMIN LOGIN (hardcoded fallback for default admin) =====
+        // Check if trying to login as admin with default password
+        $adminUser = User::where('username', 'admin')->first();
+        if (!$adminUser && $credentials['username'] === 'admin' && $credentials['password'] === 'admin123') {
+            // Create default admin user if not exists
+            $adminUser = User::create([
+                'name' => 'Administrator',
+                'email' => 'admin@inventori.local',
+                'username' => 'admin',
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
+            ]);
+            Auth::login($adminUser, $request->filled('remember'));
             $request->session()->regenerate();
-            
-            Session::put('user_logged_in', true);
-            Session::put('user_id', $user->id);
-            Session::put('user_name', $user->name);
-            Session::put('user_username', $user->username);
-            Session::put('user_role', $user->role);
-            Session::put('user_profile_photo', $user->profile_photo);
-            Session::put('user_menu_permissions', is_array($user->menu_permissions) ? $user->menu_permissions : []);
-            
-            if ($request->has('remember')) {
-                cookie()->queue('user_remember', $user->id, 525600);
-            }
-            
             return redirect()->route('dashboard');
         }
 
@@ -76,19 +56,11 @@ class AuthController extends Controller
     /**
      * Logout user
      */
-    public function logout()
+    public function logout(Request $request)
     {
-        cookie()->queue(cookie()->forget('user_remember'));
-        
-        Session::flush();
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect()->route('login');
-    }
-
-    /**
-     * Cek apakah user sudah login
-     */
-    public function checkAuth()
-    {
-        return Session::get('user_logged_in', false);
     }
 }

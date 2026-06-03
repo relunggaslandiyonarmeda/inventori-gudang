@@ -11,7 +11,7 @@ use App\Models\MasterLokasiUnit;
 use App\Models\BarangRetur;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -22,31 +22,15 @@ use App\Exports\LaporanExport;
 
 class InventoriController extends Controller
 {
-    // ========== MIDDLEWARE CHECK ==========
-    private function checkAuth()
-    {
-        if (!Session::get('user_logged_in')) {
-            return redirect()->route('login');
-        }
-        return null;
-    }
-
     // ========== GET CURRENT USER ID ==========
     private function getCurrentUserId()
     {
-        $userId = Session::get('user_id');
-        // Return null for admin user (hardcoded)
-        if ($userId === 'admin') {
-            return null;
-        }
-        return $userId;
+        return Auth::id();
     }
 
     // ========== DASHBOARD ==========
     public function dashboard()
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $totalBarang = MasterBarang::count();
         $totalStok = MasterBarang::sum('stok');
@@ -66,8 +50,6 @@ class InventoriController extends Controller
     // ========== MASTER BARANG ==========
     public function masterBarang(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
         $rak = $request->input('rak');
@@ -93,8 +75,6 @@ class InventoriController extends Controller
 
     public function masterBarangStore(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'barcode' => 'required|string|max:100|unique:master_barang,barcode',
@@ -116,7 +96,7 @@ class InventoriController extends Controller
             'nama_barang' => $barang->nama_barang,
             'stok' => $barang->stok,
             'lokasi_rak' => $barang->lokasi_rak,
-            'user' => Session::get('user_username')
+            'user' => Auth::user()->username
         ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil ditambahkan!');
@@ -124,8 +104,6 @@ class InventoriController extends Controller
 
     public function masterBarangUpdate(Request $request, $barcode)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'nama_barang' => 'required|string|max:255',
@@ -155,7 +133,7 @@ class InventoriController extends Controller
             'nama_barang' => $barang->nama_barang,
             'stok' => $barang->stok,
             'lokasi_rak' => $barang->lokasi_rak,
-            'user' => Session::get('user_username')
+            'user' => Auth::user()->username
         ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil diupdate!');
@@ -163,8 +141,6 @@ class InventoriController extends Controller
 
     public function masterBarangDestroy($barcode)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $barang = MasterBarang::findOrFail($barcode);
         $barang->delete();
@@ -172,42 +148,53 @@ class InventoriController extends Controller
         Log::warning('Barang dihapus', [
             'barcode' => $barcode,
             'nama_barang' => $barang->nama_barang,
-            'user' => Session::get('user_username')
+            'user' => Auth::user()->username
         ]);
 
         return redirect()->route('master.barang')->with('success', 'Barang berhasil dihapus!');
     }
 
-    // ========== RIWAYAT MASTER BARANG ==========
+// ========== RIWAYAT MASTER BARANG ==========
     public function masterBarangRiwayat(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
         $filter = $request->input('filter', 'semua');
-        
-        $barangs = MasterBarang::with(['createdBy', 'updatedBy'])
-            ->when($search, function($query) use ($search) {
-                $query->where('barcode', 'like', '%' . $search . '%')
-                      ->orWhere('nama_barang', 'like', '%' . $search . '%');
-            })
-            ->orderBy('updated_at', 'desc')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
-        
-        $totalBarang = MasterBarang::count();
-        $totalDibuat = MasterBarang::whereNotNull('created_by')->count();
-        $totalDiupdate = MasterBarang::whereNotNull('updated_by')->distinct()->count('updated_by');
+
+        $barangs = MasterBarang::with(['createdBy', 'updatedBy'])->withTrashed()
+             ->when($search, function($query) use ($search) {
+                 $query->where('barcode', 'like', '%' . $search . '%')
+                       ->orWhere('nama_barang', 'like', '%' . $search . '%');
+             })
+             ->orderBy('updated_at', 'desc')
+             ->orderBy('created_at', 'desc')
+             ->paginate(15);
+
+        $totalBarang = MasterBarang::withTrashed()->count();
+        $totalDibuat = MasterBarang::withTrashed()->whereNotNull('created_by')->count();
+        $totalDiupdate = MasterBarang::withTrashed()->whereNotNull('updated_by')->distinct()->count('updated_by');
 
         return view('master_barang.riwayat', compact('barangs', 'search', 'filter', 'totalBarang', 'totalDibuat', 'totalDiupdate'));
+    }
+
+    // ========== RESTORE MASTER BARANG (Admin only) ==========
+    public function masterBarangRestore($barcode)
+    {
+        $barang = MasterBarang::withTrashed()->where('barcode', $barcode)->firstOrFail();
+        $barang->restore();
+
+        Log::info('Barang dipulihkan', [
+            'barcode' => $barcode,
+            'nama_barang' => $barang->nama_barang,
+            'user' => Auth::user()->username
+        ]);
+
+        return redirect()->route('master.barang.riwayat')->with('success', 'Barang berhasil dipulihkan!');
     }
 
     // ========== BARANG MASUK ==========
     public function barangMasuk(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $barangs = MasterBarang::orderBy('nama_barang', 'asc')->get();
         
@@ -231,8 +218,6 @@ class InventoriController extends Controller
 
     public function barangMasukStore(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'barcode' => 'required|string|exists:master_barang,barcode',
@@ -263,7 +248,7 @@ class InventoriController extends Controller
                     'nama_barang' => $barang->nama_barang,
                     'jumlah_masuk' => $request->jumlah_masuk,
                     'tanggal' => $request->tanggal,
-                    'user' => Session::get('user_username')
+                    'user' => Auth::user()->username
                 ]);
             });
 
@@ -275,8 +260,6 @@ class InventoriController extends Controller
 
     public function barangMasukManual(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'barcode_manual' => 'required|string|exists:master_barang,barcode',
@@ -311,20 +294,18 @@ class InventoriController extends Controller
     // ========== RIWAYAT BARANG MASUK ==========
     public function barangMasukRiwayat(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
         
-        $barangMasuk = BarangMasuk::with(['masterBarang', 'createdBy'])
-            ->when($search, function($query) use ($search) {
-                $query->where('barcode', 'like', '%' . $search . '%')
-                      ->orWhereHas('masterBarang', function($q) use ($search) {
-                          $q->where('nama_barang', 'like', '%' . $search . '%');
-                      });
-            })
-            ->orderBy('tanggal', 'desc')
-            ->get();
+$barangMasuk = BarangMasuk::with(['masterBarang', 'createdBy'])->withTrashed()
+             ->when($search, function($query) use ($search) {
+                 $query->where('barcode', 'like', '%' . $search . '%')
+                       ->orWhereHas('masterBarang', function($q) use ($search) {
+                           $q->where('nama_barang', 'like', '%' . $search . '%');
+                       });
+             })
+             ->orderBy('tanggal', 'desc')
+             ->get();
         
         $totalQty = $barangMasuk->sum('jumlah_masuk');
         $totalUser = $barangMasuk->pluck('created_by')->filter()->unique()->count();
@@ -335,8 +316,6 @@ class InventoriController extends Controller
     // ========== BARANG KELUAR ==========
     public function barangKeluar(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $barangs = MasterBarang::orderBy('nama_barang', 'asc')->get();
         
@@ -360,8 +339,6 @@ class InventoriController extends Controller
 
     public function barangKeluarStore(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'barcode' => 'required|string|exists:master_barang,barcode',
@@ -397,7 +374,7 @@ class InventoriController extends Controller
                     'nama_barang' => $barang->nama_barang,
                     'jumlah_keluar' => $request->jumlah_keluar,
                     'tanggal' => $request->tanggal,
-                    'user' => Session::get('user_username')
+                    'user' => Auth::user()->username
                 ]);
             });
 
@@ -410,12 +387,10 @@ class InventoriController extends Controller
     // ========== RIWAYAT BARANG KELUAR ==========
     public function barangKeluarRiwayat(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
-        
-        $barangKeluar = BarangKeluar::with(['masterBarang', 'createdBy'])
+
+        $barangKeluar = BarangKeluar::with(['masterBarang', 'createdBy'])->withTrashed()
             ->when($search, function($query) use ($search) {
                 $query->where('barcode', 'like', '%' . $search . '%')
                       ->orWhereHas('masterBarang', function($q) use ($search) {
@@ -433,8 +408,6 @@ class InventoriController extends Controller
 
     public function barangKeluarManual(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'barcode_manual' => 'required|string|exists:master_barang,barcode',
@@ -473,7 +446,6 @@ class InventoriController extends Controller
 
 public function barangKeluarScannerInput(Request $request)
     {
-        $authCheck = $this->checkAuth();
         if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $request->validate([
@@ -521,7 +493,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangKeluarQuickScan(Request $request)
      {
-         $authCheck = $this->checkAuth();
          if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $request->validate([
@@ -560,7 +531,7 @@ public function barangKeluarScannerInput(Request $request)
                         'nama_barang' => $barang->nama_barang,
                         'jumlah_keluar' => $item['quantity'],
                         'tanggal' => $currentTime->toDateString(),
-                        'user' => Session::get('user_username')
+                        'user' => Auth::user()->username
                     ]);
                 }
             });
@@ -569,7 +540,7 @@ public function barangKeluarScannerInput(Request $request)
         } catch (\Exception $e) {
             Log::error('Error quick scan barang keluar', [
                 'error' => $e->getMessage(),
-                'user' => Session::get('user_username')
+                'user' => Auth::user()->username
             ]);
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
@@ -578,8 +549,6 @@ public function barangKeluarScannerInput(Request $request)
     // ========== BARANG RETUR ==========
     public function barangRetur(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->search ?? '';
         
@@ -613,8 +582,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangReturStore(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'barang_keluar_id' => 'required|exists:barang_keluar,id',
@@ -664,8 +631,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangReturDestroy($id)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         try {
             DB::transaction(function () use ($id) {
@@ -689,20 +654,18 @@ public function barangKeluarScannerInput(Request $request)
     // ========== RIWAYAT BARANG RETUR ==========
     public function barangReturRiwayat(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
         
-        $retur = BarangRetur::with(['masterBarang', 'createdBy'])
-            ->when($search, function($query) use ($search) {
-                $query->where('barcode', 'like', '%' . $search . '%')
-                      ->orWhereHas('masterBarang', function($q) use ($search) {
-                          $q->where('nama_barang', 'like', '%' . $search . '%');
-                      });
-            })
-            ->orderBy('tanggal_retur', 'desc')
-            ->get();
+$retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
+             ->when($search, function($query) use ($search) {
+                 $query->where('barcode', 'like', '%' . $search . '%')
+                       ->orWhereHas('masterBarang', function($q) use ($search) {
+                           $q->where('nama_barang', 'like', '%' . $search . '%');
+                       });
+             })
+             ->orderBy('tanggal_retur', 'desc')
+             ->get();
         
         $totalQty = $retur->sum('jumlah_retur');
         $totalUser = $retur->pluck('created_by')->filter()->unique()->count();
@@ -713,8 +676,6 @@ public function barangKeluarScannerInput(Request $request)
     // ========== LAPORAN ==========
     public function laporan()
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         return view('laporan.index');
     }
@@ -722,8 +683,6 @@ public function barangKeluarScannerInput(Request $request)
     // Laporan Barang Masuk
     public function laporanMasuk(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -741,8 +700,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanMasukPdf(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -761,8 +718,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanMasukExcel(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -772,8 +727,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanMasukCsv(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -815,8 +768,6 @@ public function barangKeluarScannerInput(Request $request)
     // Laporan Barang Keluar
     public function laporanKeluar(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -835,8 +786,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanKeluarPdf(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -856,8 +805,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanKeluarExcel(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -867,8 +814,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanKeluarCsv(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -911,8 +856,6 @@ public function barangKeluarScannerInput(Request $request)
     // Laporan Gabungan
     public function laporanGabungan(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -938,8 +881,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanGabunganPdf(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -966,8 +907,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanGabunganExcel(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -977,8 +916,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanGabunganCsv(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
@@ -1038,8 +975,6 @@ public function barangKeluarScannerInput(Request $request)
     // ========== LAPORAN BARANG PER RAK ==========
     public function laporanRak(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $rak = $request->rak ?? 'all';
         
@@ -1072,8 +1007,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanRakPdf(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $rak = $request->rak ?? 'all';
         
@@ -1102,8 +1035,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanRakExcel(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $rak = $request->rak ?? 'all';
         
@@ -1112,8 +1043,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanRakCsv(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $rak = $request->rak ?? 'all';
         
@@ -1177,7 +1106,6 @@ public function barangKeluarScannerInput(Request $request)
     // ========== GLOBAL SEARCH API ==========
     public function globalSearch(Request $request)
     {
-        $authCheck = $this->checkAuth();
         if ($authCheck) return response()->json(['error' => 'Unauthorized'], 401);
         
         $query = $request->q ?? '';
@@ -1281,8 +1209,6 @@ public function barangKeluarScannerInput(Request $request)
     // ========== BARANG RUSAK ==========
     public function barangRusak()
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $barangRusaks = BarangRusak::orderBy('id', 'desc')->paginate(10);
         $vehicleGroups = MasterVehicleGroup::orderBy('kode')->get();
@@ -1294,8 +1220,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangRusakStore(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'vehicle_group_code' => 'required|string|max:100',
@@ -1354,7 +1278,7 @@ public function barangKeluarScannerInput(Request $request)
             'nomor' => $barangRusak->nomor,
             'vehicle_group_code' => $barangRusak->vehicle_group_code,
             'merek' => $barangRusak->merek,
-            'user' => Session::get('user_username')
+            'user' => Auth::user()->username
         ]);
 
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil ditambahkan!');
@@ -1362,8 +1286,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangRusakUpdate(Request $request, $id)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $request->validate([
             'vehicle_group_code' => 'required|string|max:100',
@@ -1422,7 +1344,7 @@ public function barangKeluarScannerInput(Request $request)
 
         Log::info('Barang Rusak diupdate', [
             'nomor' => $barangRusak->nomor,
-            'user' => Session::get('user_username')
+            'user' => Auth::user()->username
         ]);
 
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil diupdate!');
@@ -1430,8 +1352,6 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangRusakDestroy(Request $request, $id)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $barangRusak = BarangRusak::findOrFail($id);
         
@@ -1445,7 +1365,7 @@ public function barangKeluarScannerInput(Request $request)
 
         Log::info('Barang Rusak dihapus', [
             'nomor' => $nomor,
-            'user' => Session::get('user_username')
+            'user' => Auth::user()->username
         ]);
 
         return redirect()->route('barang.rusak')->with('success', 'Barang Rusak berhasil dihapus!');
@@ -1454,8 +1374,6 @@ public function barangKeluarScannerInput(Request $request)
     // ========== RIWAYAT BARANG RUSAK ==========
     public function barangRusakRiwayat(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         $search = $request->input('search');
         
@@ -1474,20 +1392,16 @@ public function barangKeluarScannerInput(Request $request)
     // ========== LAPORAN BARANG RUSAK ==========
     public function laporanRusak(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->withTrashed()->orderBy('created_at', 'desc')->get();
         
         return view('laporan.rusak', compact('barangRusaks'));
     }
 
     public function laporanRusakPdf(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->withTrashed()->orderBy('created_at', 'desc')->get();
 
         $pdf = Pdf::loadView('laporan.pdf.rusak', compact('barangRusaks'));
         $pdf->setPaper('a4', 'landscape');
@@ -1497,20 +1411,16 @@ public function barangKeluarScannerInput(Request $request)
 
     public function laporanRusakExcel(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->withTrashed()->orderBy('created_at', 'desc')->get();
 
         return Excel::download(new LaporanExport('rusak', $barangRusaks, ''), 'laporan_barang_rusak.xlsx');
     }
 
     public function laporanRusakCsv(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
-        $barangRusaks = BarangRusak::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $barangRusaks = BarangRusak::with('createdBy')->withTrashed()->orderBy('created_at', 'desc')->get();
 
         $filename = 'laporan_barang_rusak.csv';
         $headers = [
@@ -1548,11 +1458,9 @@ public function barangKeluarScannerInput(Request $request)
     // ========== USER MANAGEMENT ==========
     public function users(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         // Only admin can access user management
-        if (Session::get('user_role') !== 'admin') {
+        if (Auth::user()->role !== 'admin') {
             return redirect()->route('dashboard')->with('error', 'Akses ditolak! Hanya admin yang dapat mengakses halaman ini.');
         }
 
@@ -1575,11 +1483,9 @@ public function barangKeluarScannerInput(Request $request)
 
     public function usersStore(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         // Only admin can create users
-        if (Session::get('user_role') !== 'admin') {
+        if (Auth::user()->role !== 'admin') {
             return redirect()->route('dashboard')->with('error', 'Akses ditolak!');
         }
 
@@ -1604,7 +1510,7 @@ public function barangKeluarScannerInput(Request $request)
             'name' => $request->name,
             'username' => $request->username,
             'role' => $request->role,
-            'created_by' => Session::get('user_username')
+            'created_by' => Auth::user()->username
         ]);
 
         return redirect()->route('users.index')->with('success', 'User berhasil ditambahkan!');
@@ -1612,11 +1518,9 @@ public function barangKeluarScannerInput(Request $request)
 
     public function usersUpdate(Request $request, $id)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         // Only admin can update users
-        if (Session::get('user_role') !== 'admin') {
+        if (Auth::user()->role !== 'admin') {
             return redirect()->route('dashboard')->with('error', 'Akses ditolak!');
         }
 
@@ -1647,7 +1551,7 @@ public function barangKeluarScannerInput(Request $request)
             'name' => $request->name,
             'username' => $request->username,
             'role' => $request->role,
-            'updated_by' => Session::get('user_username')
+            'updated_by' => Auth::user()->username
         ]);
 
         return redirect()->route('users.index')->with('success', 'User berhasil diperbarui!');
@@ -1655,16 +1559,14 @@ public function barangKeluarScannerInput(Request $request)
 
     public function usersDestroy($id)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
         // Only admin can delete users
-        if (Session::get('user_role') !== 'admin') {
+        if (Auth::user()->role !== 'admin') {
             return redirect()->route('dashboard')->with('error', 'Akses ditolak!');
         }
 
         // Prevent admin from deleting themselves
-        if (Session::get('user_id') == $id) {
+        if (Auth::id() == $id) {
             return redirect()->route('users.index')->with('error', 'Tidak dapat menghapus akun sendiri!');
         }
 
@@ -1675,7 +1577,7 @@ public function barangKeluarScannerInput(Request $request)
         Log::info('User deleted', [
             'id' => $id,
             'name' => $userName,
-            'deleted_by' => Session::get('user_username')
+            'deleted_by' => Auth::user()->username
         ]);
 
         return redirect()->route('users.index')->with('success', 'User berhasil dihapus!');
@@ -1684,10 +1586,8 @@ public function barangKeluarScannerInput(Request $request)
     // ========== PROFILE ==========
     public function profile()
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
-        $userId = Session::get('user_id');
+        $userId = Auth::id();
         $isAdmin = ($userId === 'admin');
         
         // For admin (hardcoded), return basic info
@@ -1704,10 +1604,8 @@ public function barangKeluarScannerInput(Request $request)
 
     public function profileUpdatePhoto(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
 
-        $userId = Session::get('user_id');
+        $userId = Auth::id();
         
         // Admin cannot update profile photo (hardcoded account)
         if ($userId === 'admin') {
@@ -1743,9 +1641,6 @@ public function barangKeluarScannerInput(Request $request)
         $user->profile_photo = $filename;
         $user->save();
 
-        // Update session
-        Session::put('user_profile_photo', $filename);
-
         Log::info('Profile photo updated', [
             'user_id' => $user->id,
             'username' => $user->username
@@ -1756,13 +1651,10 @@ public function barangKeluarScannerInput(Request $request)
 
     public function profileUpdatePassword(Request $request)
     {
-        $authCheck = $this->checkAuth();
-        if ($authCheck) return $authCheck;
+        $user = Auth::user();
 
-        $userId = Session::get('user_id');
-        
         // Admin cannot change password this way (hardcoded)
-        if ($userId === 'admin') {
+        if ($user->username === 'admin') {
             return back()->with('error', 'Akun admin tidak dapat mengubah password melalui halaman ini!');
         }
 
