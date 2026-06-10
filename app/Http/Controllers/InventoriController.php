@@ -446,7 +446,7 @@ $barangMasuk = BarangMasuk::with(['masterBarang', 'createdBy'])->withTrashed()
 
 public function barangKeluarScannerInput(Request $request)
     {
-        if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        if (!Auth::check()) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $request->validate([
             'barcode' => 'required|string|exists:master_barang,barcode',
@@ -493,7 +493,7 @@ public function barangKeluarScannerInput(Request $request)
 
     public function barangKeluarQuickScan(Request $request)
      {
-         if ($authCheck) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+         if (!Auth::check()) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
         $request->validate([
             'items' => 'required|array',
@@ -1106,7 +1106,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
     // ========== GLOBAL SEARCH API ==========
     public function globalSearch(Request $request)
     {
-        if ($authCheck) return response()->json(['error' => 'Unauthorized'], 401);
+        if (!Auth::check()) return response()->json(['error' => 'Unauthorized'], 401);
         
         $query = $request->q ?? '';
         if (strlen($query) < 2) {
