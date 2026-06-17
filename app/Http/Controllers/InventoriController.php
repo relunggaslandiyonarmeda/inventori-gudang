@@ -1455,6 +1455,301 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
         return response()->stream($callback, 200, $headers);
     }
 
+    // ========== DATABASE BACKUP ==========
+    public function backupDatabase()
+    {
+        $backups = $this->getDatabaseBackups();
+        $latestBackup = $backups[0] ?? null;
+
+        return view('backup_database.index', compact('backups', 'latestBackup'));
+    }
+
+    public function createDatabaseBackup()
+    {
+        try {
+            $backup = $this->generateDatabaseBackupFile();
+
+            Log::info('Database backup created', [
+                'filename' => $backup['filename'],
+                'driver' => $backup['driver'],
+                'user' => Auth::user()->username,
+            ]);
+
+            return back()->with('success', 'Backup database berhasil dibuat pada ' . Carbon::now()->format('d-m-Y H:i:s') . '.');
+        } catch (\Throwable $e) {
+            Log::error('Database backup failed', [
+                'driver' => config('database.default'),
+                'user' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Gagal membuat backup database: ' . $e->getMessage());
+        }
+    }
+
+    public function downloadDatabaseBackup($filename)
+    {
+        try {
+            $backup = $this->findBackupFile($filename);
+
+            return response()->download($backup['path'], $backup['filename'], [
+                'Content-Type' => 'application/octet-stream',
+            ])->deleteFileAfterSend(false);
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal mengunduh backup database: ' . $e->getMessage());
+        }
+    }
+
+    public function destroyDatabaseBackup($filename)
+    {
+        try {
+            $backup = $this->findBackupFile($filename);
+
+            if (!unlink($backup['path'])) {
+                throw new \RuntimeException('Gagal menghapus file backup database.');
+            }
+
+            return back()->with('success', 'Backup database berhasil dihapus.');
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Gagal menghapus backup database: ' . $e->getMessage());
+        }
+    }
+
+    private function generateDatabaseBackupFile(): array
+    {
+        $connection = config('database.default');
+        $config = config("database.connections.{$connection}");
+        $driver = $config['driver'] ?? null;
+        $timestamp = Carbon::now()->format('Y-m-d_His');
+        $directory = storage_path('app/backups/database');
+
+        if (!is_dir($directory) && !mkdir($directory, 0777, true)) {
+            throw new \RuntimeException('Gagal membuat folder backup database.');
+        }
+
+        return match ($driver) {
+            'mysql', 'mariadb' => $this->backupMySql($config, $directory, $timestamp),
+            'sqlite' => $this->backupSqlite($config, $directory, $timestamp),
+            'pgsql' => $this->backupPostgreSql($config, $directory, $timestamp),
+            default => throw new \RuntimeException("Driver database {$driver} belum didukung untuk backup otomatis."),
+        };
+    }
+
+    private function backupMySql(array $config, string $directory, string $timestamp): array
+    {
+        $dumpPath = $this->findExecutable([
+            env('MYSQLDUMP_PATH'),
+            'C:\\xampp\\mysql\\bin\\mysqldump.exe',
+            'C:\\xampp\\mariadb\\bin\\mysqldump.exe',
+            'mysqldump',
+        ], 'mysqldump');
+
+        $filename = 'backup_inventori_gudang_' . $timestamp . '.sql';
+        $path = $directory . DIRECTORY_SEPARATOR . $filename;
+
+        $command = [
+            $dumpPath,
+            '--host=' . ($config['host'] ?? '127.0.0.1'),
+            '--port=' . (string)($config['port'] ?? 3306),
+            '--user=' . ($config['username'] ?? 'root'),
+            '--single-transaction',
+            '--routines',
+            '--triggers',
+            '--events',
+            '--quick',
+            '--skip-lock-tables',
+            '--databases',
+            '--result-file=' . $path,
+            $config['database'],
+        ];
+
+        if (!empty($config['unix_socket'])) {
+            $command[] = '--socket=' . $config['unix_socket'];
+        }
+
+        $this->runBackupCommand($command, ['MYSQL_PWD' => (string)($config['password'] ?? '')]);
+
+        if (!is_file($path) || filesize($path) === 0) {
+            throw new \RuntimeException('Backup database selesai dijalankan, tetapi file tidak tersimpan.');
+        }
+
+        return [
+            'path' => $path,
+            'filename' => $filename,
+            'driver' => $config['driver'],
+        ];
+    }
+
+    private function backupSqlite(array $config, string $directory, string $timestamp): array
+    {
+        $databasePath = $config['database'] ?? null;
+
+        if (!is_string($databasePath) || $databasePath === ':memory:' || !file_exists($databasePath)) {
+            throw new \RuntimeException('File database SQLite tidak ditemukan.');
+        }
+
+        $extension = pathinfo($databasePath, PATHINFO_EXTENSION) ?: 'sqlite';
+        $filename = 'backup_inventori_gudang_' . $timestamp . '.' . $extension;
+        $path = $directory . DIRECTORY_SEPARATOR . $filename;
+
+        if (!copy($databasePath, $path)) {
+            throw new \RuntimeException('Gagal menyalin file database SQLite.');
+        }
+
+        return [
+            'path' => $path,
+            'filename' => $filename,
+            'driver' => $config['driver'],
+        ];
+    }
+
+    private function backupPostgreSql(array $config, string $directory, string $timestamp): array
+    {
+        $dumpPath = $this->findExecutable([
+            env('PGDUMP_PATH'),
+            'C:\\Program Files\\PostgreSQL\\16\\bin\\pg_dump.exe',
+            'C:\\Program Files\\PostgreSQL\\15\\bin\\pg_dump.exe',
+            'C:\\Program Files\\PostgreSQL\\14\\bin\\pg_dump.exe',
+            'pg_dump',
+        ], 'pg_dump');
+
+        $filename = 'backup_inventori_gudang_' . $timestamp . '.sql';
+        $path = $directory . DIRECTORY_SEPARATOR . $filename;
+
+        $command = [
+            $dumpPath,
+            '--host=' . ($config['host'] ?? '127.0.0.1'),
+            '--port=' . (string)($config['port'] ?? 5432),
+            '--username=' . ($config['username'] ?? 'postgres'),
+            '--format=plain',
+            '--no-owner',
+            '--no-privileges',
+            '--file=' . $path,
+            $config['database'],
+        ];
+        $this->runBackupCommand($command, ['PGPASSWORD' => (string)($config['password'] ?? '')]);
+
+        if (!is_file($path) || filesize($path) === 0) {
+            throw new \RuntimeException('Backup database selesai dijalankan, tetapi file tidak tersimpan.');
+        }
+
+        return [
+            'path' => $path,
+            'filename' => $filename,
+            'driver' => $config['driver'],
+        ];
+    }
+
+    private function getDatabaseBackups(): array
+    {
+        $directory = storage_path('app/backups/database');
+
+        if (!is_dir($directory)) {
+            return [];
+        }
+
+        $files = glob($directory . DIRECTORY_SEPARATOR . 'backup_inventori_gudang_*.*') ?: [];
+        $files = array_values(array_filter($files, function ($file) {
+            return in_array(strtolower(pathinfo($file, PATHINFO_EXTENSION)), ['sql', 'sqlite', 'db'], true);
+        }));
+
+        usort($files, function ($a, $b) {
+            return filemtime($b) <=> filemtime($a);
+        });
+
+        return array_map(function ($file) {
+            return [
+                'filename' => basename($file),
+                'path' => $file,
+                'size' => $this->formatBytes(filesize($file)),
+                'created_at' => Carbon::createFromTimestamp(filemtime($file))->format('d-m-Y H:i:s'),
+            ];
+        }, $files);
+    }
+
+    private function findBackupFile($filename): array
+    {
+        $filename = basename((string) $filename);
+
+        if (!preg_match('/^backup_inventori_gudang_\d{4}-\d{2}-\d{2}_\d{6}\.(sql|sqlite|db)$/', $filename)) {
+            throw new \RuntimeException('File backup tidak valid.');
+        }
+
+        $path = storage_path('app/backups/database') . DIRECTORY_SEPARATOR . $filename;
+
+        if (!is_file($path)) {
+            throw new \RuntimeException('File backup tidak ditemukan.');
+        }
+
+        return [
+            'filename' => $filename,
+            'path' => $path,
+        ];
+    }
+
+    private function findExecutable(array $candidates, string $commandName): string
+    {
+        foreach (array_filter($candidates) as $candidate) {
+            if (is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        if (PHP_OS_FAMILY === 'Windows') {
+            exec('where ' . escapeshellarg($commandName) . ' 2>NUL', $paths, $code);
+        } else {
+            exec('command -v ' . escapeshellarg($commandName), $paths, $code);
+        }
+
+        if ($code === 0 && !empty($paths[0])) {
+            return $paths[0];
+        }
+
+        return end($candidates) ?: $commandName;
+    }
+
+    private function runBackupCommand(array $command, array $environment = []): void
+    {
+        $nullDevice = PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
+        $descriptors = [
+            1 => ['file', $nullDevice, 'w'],
+            2 => ['pipe', 'w'],
+        ];
+        $baseEnvironment = array_filter(array_merge($_ENV, $_SERVER), fn($value) => is_scalar($value));
+        $baseEnvironment = array_map('strval', $baseEnvironment);
+
+        $process = proc_open($command, $descriptors, $pipes, null, array_merge($baseEnvironment, $environment));
+
+        if (!is_resource($process)) {
+            throw new \RuntimeException('Gagal menjalankan perintah backup database. Pastikan aplikasi database CLI tersedia.');
+        }
+
+        $errorOutput = isset($pipes[2]) ? stream_get_contents($pipes[2]) : '';
+        if (isset($pipes[2])) {
+            fclose($pipes[2]);
+        }
+
+        $exitCode = proc_close($process);
+
+        if ($exitCode !== 0) {
+            throw new \RuntimeException(trim($errorOutput) ?: 'Perintah backup database gagal dijalankan.');
+        }
+    }
+
+    private function formatBytes(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB'];
+        $bytes = max(0, $bytes);
+        $unitIndex = 0;
+
+        while ($bytes >= 1024 && $unitIndex < count($units) - 1) {
+            $bytes /= 1024;
+            $unitIndex++;
+        }
+
+        return round($bytes, 2) . ' ' . $units[$unitIndex];
+    }
+
     // ========== USER MANAGEMENT ==========
     public function users(Request $request)
     {

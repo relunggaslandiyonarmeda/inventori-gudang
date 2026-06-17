@@ -466,6 +466,7 @@
         .menu-retur a i { color: #fbbf24; }
         .menu-rusak a i { color: #dc2626; }
         .menu-laporan a i { color: var(--warning-color); }
+        .menu-backup a i { color: var(--success-color); }
 
         /* ========================================
            MAIN CONTENT
@@ -1656,6 +1657,13 @@
                 <a class="{{ Request::is('users*') ? 'active' : '' }}" href="{{ route('users.index') }}">
                     <i class="bi bi-people"></i>
                     <span>Manajemen Akun</span>
+                </a>
+            </li>
+
+            <li class="sidebar-menu-item menu-backup">
+                <a class="{{ Request::is('backup-database*') ? 'active' : '' }}" href="{{ route('backup.database') }}">
+                    <i class="bi bi-download"></i>
+                    <span>Backup Database</span>
                 </a>
             </li>
             @endif

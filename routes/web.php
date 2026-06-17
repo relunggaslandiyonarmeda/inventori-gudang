@@ -28,6 +28,11 @@ Route::middleware(['admin.auth'])->group(function () {
         Route::put('/users/{id}', [InventoriController::class, 'usersUpdate'])->name('users.update');
         Route::delete('/users/{id}', [InventoriController::class, 'usersDestroy'])->name('users.destroy');
 
+        Route::get('/backup-database', [InventoriController::class, 'backupDatabase'])->name('backup.database');
+        Route::post('/backup-database', [InventoriController::class, 'createDatabaseBackup'])->name('backup.database.create');
+        Route::get('/backup-database/download/{filename}', [InventoriController::class, 'downloadDatabaseBackup'])->name('backup.database.download');
+        Route::delete('/backup-database/{filename}', [InventoriController::class, 'destroyDatabaseBackup'])->name('backup.database.destroy');
+
         // Master Barang
         Route::get('/master-barang', [InventoriController::class, 'masterBarang'])->name('master.barang');
         Route::post('/master-barang', [InventoriController::class, 'masterBarangStore'])->name('master.barang.store');
