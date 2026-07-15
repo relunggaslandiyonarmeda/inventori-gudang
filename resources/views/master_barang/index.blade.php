@@ -294,6 +294,11 @@
                 @csrf
                 @method('PUT')
                 <div class="modal-body">
+                    <div id="edit-error-box" class="alert alert-danger alert-dismissible fade show d-none mb-3" role="alert">
+                        <i class="bi bi-exclamation-circle me-2"></i>
+                        <span id="edit-error-text"></span>
+                        <button type="button" class="btn-close" onclick="document.getElementById('edit-error-box').classList.add('d-none')"></button>
+                    </div>
                     <div class="mb-3">
                         <label class="form-label">Barcode</label>
                         <div class="input-group">
@@ -351,9 +356,29 @@
 let scannerActive = false;
 let editModal = null;
 
+@if(session('edit_data'))
+window.__editData = @json(session('edit_data'));
+window.__editErrors = @json($errors->all());
+@endif
+
 document.addEventListener('DOMContentLoaded', function() {
     editModal = new bootstrap.Modal(document.getElementById('editModal'));
     
+    // Reopen the edit modal automatically if a validation error occurred
+    if (window.__editData) {
+        editBarang(
+            window.__editData.barcode,
+            window.__editData.nama_barang ?? '',
+            window.__editData.stok ?? 0,
+            window.__editData.lokasi_rak ?? ''
+        );
+        if (window.__editErrors && window.__editErrors.length) {
+            document.getElementById('edit-error-text').innerHTML =
+                window.__editErrors.map(function(e) { return '• ' + e; }).join('<br>');
+            document.getElementById('edit-error-box').classList.remove('d-none');
+        }
+    }
+
     // Check if this is a pagination request (has page parameter or hash is #list)
     // OR if there's a search parameter - in all these cases, show the Daftar Barang tab
     const urlParams = new URLSearchParams(window.location.search);
@@ -497,6 +522,7 @@ function stopScanner() {
 }
 
 function editBarang(barcode, nama, stok, rak) {
+    document.getElementById('edit-error-box').classList.add('d-none');
     document.getElementById('edit-barcode').value = barcode;
     document.getElementById('edit-nama').value = nama;
     document.getElementById('edit-stok').value = stok;

@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
@@ -104,15 +105,27 @@ class InventoriController extends Controller
 
     public function masterBarangUpdate(Request $request, $barcode)
     {
-
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'nama_barang' => 'required|string|max:255',
             'stok' => 'required|integer|min:0',
             'lokasi_rak' => 'required|in:A,B,C,D,E,F,G,H,O',
         ]);
 
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withFragment('list')
+                ->withErrors($validator)
+                ->withInput()
+                ->with('edit_data', [
+                    'barcode' => $barcode,
+                    'nama_barang' => $request->nama_barang,
+                    'stok' => $request->stok,
+                    'lokasi_rak' => $request->lokasi_rak,
+                ]);
+        }
+
         $barang = MasterBarang::findOrFail($barcode);
-        
+
         // Prevent changing barcode to an existing one
         if ($request->has('barcode') && $request->barcode !== $barcode) {
             $exists = MasterBarang::where('barcode', $request->barcode)->exists();
@@ -120,7 +133,7 @@ class InventoriController extends Controller
                 return back()->with('error', 'Barcode sudah digunakan oleh barang lain!');
             }
         }
-        
+
         $barang->update([
             'nama_barang' => $request->nama_barang,
             'stok' => $request->stok,
@@ -136,12 +149,11 @@ class InventoriController extends Controller
             'user' => Auth::user()->username
         ]);
 
-        return redirect()->route('master.barang')->with('success', 'Barang berhasil diupdate!');
+        return redirect()->back()->withFragment('list')->with('success', 'Barang berhasil diupdate!');
     }
 
     public function masterBarangDestroy($barcode)
     {
-
         $barang = MasterBarang::findOrFail($barcode);
         $barang->delete();
 
@@ -151,7 +163,7 @@ class InventoriController extends Controller
             'user' => Auth::user()->username
         ]);
 
-        return redirect()->route('master.barang')->with('success', 'Barang berhasil dihapus!');
+        return redirect()->back()->withFragment('list')->with('success', 'Barang berhasil dihapus!');
     }
 
 // ========== RIWAYAT MASTER BARANG ==========
@@ -1354,10 +1366,13 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
     {
 
         $barangRusak = BarangRusak::findOrFail($id);
-        
-        // Delete foto
+
+        // Delete foto from storage
         if ($barangRusak->foto) {
-            // Note: In production, you would delete the file from storage
+            $oldFilePath = storage_path('app/public/' . $barangRusak->foto);
+            if (file_exists($oldFilePath)) {
+                @unlink($oldFilePath);
+            }
         }
 
         $nomor = $barangRusak->nomor;
@@ -1958,7 +1973,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             'new_password' => 'required|string|min:6|confirmed',
         ]);
 
-        $user = User::findOrFail($userId);
+        $user = User::findOrFail($user->id);
 
         // Verify current password
         if (!Hash::check($request->current_password, $user->password)) {
