@@ -1145,7 +1145,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
                     'type' => 'Barang Masuk',
                     'title' => $item->masterBarang->nama_barang ?? 'N/A',
                     'subtitle' => 'Barcode: ' . $item->barcode . ' | ' . $item->tanggal,
-                    'url' => route('barang.masuk') . '?search=' . urlencode($item->barcode)
+                    'url' => route('barang.masuk.riwayat') . '?search=' . urlencode($item->barcode)
                 ];
             });
         $results = array_merge($results, $masuks->toArray());
@@ -1164,7 +1164,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
                     'type' => 'Barang Keluar',
                     'title' => $item->masterBarang->nama_barang ?? 'N/A',
                     'subtitle' => 'Barcode: ' . $item->barcode . ' | ' . $item->tanggal,
-                    'url' => route('barang.keluar') . '?search=' . urlencode($item->barcode)
+                    'url' => route('barang.keluar.riwayat') . '?search=' . urlencode($item->barcode)
                 ];
             });
         $results = array_merge($results, $keluars->toArray());
@@ -1180,7 +1180,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
                     'type' => 'Barang Rusak',
                     'title' => $item->vehicle_group_code . ' - ' . $item->merek,
                     'subtitle' => 'No: ' . $item->nomor . ' | Kondisi: ' . $item->kondisi_unit,
-                    'url' => route('barang.rusak') . '?search=' . urlencode($query)
+                    'url' => route('barang.rusak.riwayat') . '?search=' . urlencode($query)
                 ];
             });
         $results = array_merge($results, $rusaks->toArray());
@@ -1198,7 +1198,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
                     'type' => 'Barang Retur',
                     'title' => $item->masterBarang->nama_barang ?? 'N/A',
                     'subtitle' => 'ID: ' . $item->id . ' | ' . $item->tanggal_retur,
-                    'url' => route('barang.retur') . '?search=' . urlencode($query)
+                    'url' => route('barang.retur.riwayat') . '?search=' . urlencode($query)
                 ];
             });
         $results = array_merge($results, $returs->toArray());
