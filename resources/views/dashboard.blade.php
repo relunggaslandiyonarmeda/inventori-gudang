@@ -194,7 +194,7 @@
                 <i class="bi bi-upc-scan text-primary" style="font-size: 4rem;"></i>
             </div>
             <h5 class="text-primary">Scanner Panda PRJ 777 Ready</h5>
-            <p class="text-muted mb-0">Scan barcode barang, lalu klik "Proses" untuk mengurangi stok</p>
+            <p class="text-muted mb-0">Scan barcode barang, tambah keterangan, lalu klik "Proses" untuk mengurangi stok</p>
         </div>
         
         <div class="row g-4">
@@ -213,6 +213,15 @@
                     <small class="text-muted">Tekan Enter atau gunakan tombol scan pada perangkat</small>
                 </div>
                 
+                <div class="mb-3">
+                    <label class="form-label">
+                        <i class="bi bi-upc text-primary me-1"></i>
+                        Keterangan untuk Semua (Opsional)
+                    </label>
+                    <textarea id="global-keterangan" class="form-control" rows="2" placeholder="Keterangan untuk semua barang yang discan..."></textarea>
+                    <small class="text-muted">Kosongkan jika ingin keterangan otomatis per barang</small>
+                </div>
+
                 <div id="pending-items" class="list-group mb-3" style="max-height: 200px; overflow-y: auto;">
                     <div class="list-group-item text-muted text-center">
                         Belum ada barang yang discan
@@ -324,7 +333,8 @@ function addToPendingItem(barcode) {
                         barcode: barcode,
                         quantity: 1,
                         nama_barang: item.nama_barang,
-                        stok: item.stok
+                        stok: item.stok,
+                        keterangan: ''
                     };
                 }
                 updatePendingItemsDisplay();
@@ -350,24 +360,27 @@ function updatePendingItemsDisplay() {
         const stockStatus = item.stok >= item.quantity ? 'text-success' : 'text-danger';
         const stockIcon = item.stok >= item.quantity ? 'bi-check-circle' : 'bi-exclamation-triangle';
         html += `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${item.nama_barang}</strong>
-                    <br>
-                    <small class="text-muted">
-                        <code>${barcode}</code> | Qty: ${item.quantity}
-                    </small>
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong>${item.nama_barang}</strong>
+                        <br>
+                        <small class="text-muted">
+                            <code>${barcode}</code> | Qty: ${item.quantity}
+                        </small>
+                    </div>
+                    <div class="text-end">
+                        <span class="${stockStatus}">
+                            <i class="bi ${stockIcon} me-1"></i>
+                            Stok: ${item.stok}
+                        </span>
+                        <br>
+                        <button onclick="removePendingItem('${barcode}')" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="text-end">
-                    <span class="${stockStatus}">
-                        <i class="bi ${stockIcon} me-1"></i>
-                        Stok: ${item.stok}
-                    </span>
-                    <br>
-                    <button onclick="removePendingItem('${barcode}')" class="btn btn-sm btn-outline-danger">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
+                <input type="text" class="form-control form-control-sm" placeholder="Keterangan untuk ${item.nama_barang}..." value="${item.keterangan || ''}" onchange="pendingItems['${barcode}'].keterangan = this.value">
             </div>
         `;
     }
@@ -410,7 +423,8 @@ function processAllScans() {
         body: JSON.stringify({
             items: Object.values(pendingItems).map(item => ({
                 barcode: item.barcode,
-                quantity: item.quantity
+                quantity: item.quantity,
+                keterangan: item.keterangan || document.getElementById('global-keterangan').value || ''
             }))
         })
     })

@@ -511,6 +511,7 @@ public function barangKeluarScannerInput(Request $request)
             'items' => 'required|array',
             'items.*.barcode' => 'required|string|exists:master_barang,barcode',
             'items.*.quantity' => 'required|integer|min:1',
+            'items.*.keterangan' => 'nullable|string',
         ]);
 
         try {
@@ -518,23 +519,25 @@ public function barangKeluarScannerInput(Request $request)
                 $currentTime = now();
 
                 foreach ($request->items as $item) {
-                    // Cek stok cukup
                     $barang = MasterBarang::findOrFail($item['barcode']);
                     if ($barang->stok < $item['quantity']) {
                         throw new \Exception('Stok tidak cukup untuk ' . $barang->nama_barang . '! Stok tersedia: ' . $barang->stok);
                     }
 
-                    // Update stok di master_barang
                     $barang->stok = $barang->stok - $item['quantity'];
                     $barang->updated_by = $this->getCurrentUserId();
                     $barang->save();
 
-                    // Simpan ke barang_keluar
+                    $keterangan = $item['keterangan'] ?? null;
+                    if (empty($keterangan)) {
+                        $keterangan = 'Quick scan: ' . $barang->nama_barang . ' (' . $item['barcode'] . ') x' . $item['quantity'];
+                    }
+
                     BarangKeluar::create([
                         'barcode' => $item['barcode'],
                         'jumlah_keluar' => $item['quantity'],
                         'tanggal' => $currentTime->toDateString(),
-                        'keterangan' => 'Quick scan dari dashboard',
+                        'keterangan' => $keterangan,
                         'created_by' => $this->getCurrentUserId(),
                     ]);
 
@@ -542,6 +545,7 @@ public function barangKeluarScannerInput(Request $request)
                         'barcode' => $item['barcode'],
                         'nama_barang' => $barang->nama_barang,
                         'jumlah_keluar' => $item['quantity'],
+                        'keterangan' => $keterangan,
                         'tanggal' => $currentTime->toDateString(),
                         'user' => Auth::user()->username
                     ]);
