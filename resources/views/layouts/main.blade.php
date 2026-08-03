@@ -1464,6 +1464,90 @@
                 width: 50%;
             }
         }
+
+        /* ========================================
+            SCANNER POPUP
+        ======================================== */
+        .scanner-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            padding: 20px;
+        }
+
+        .scanner-popup-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scanner-popup {
+            background: var(--card-bg);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 520px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .scanner-popup-overlay.show .scanner-popup {
+            transform: scale(1);
+        }
+
+        .scanner-popup-header {
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: #fff;
+            padding: 18px 24px;
+        }
+
+        .scanner-popup-header h5 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+
+        .scanner-popup-body {
+            padding: 20px 24px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .scanner-popup-footer {
+            padding: 14px 24px;
+            background: var(--body-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        .scanner-result-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .scanner-result-item {
+            transition: background 0.2s ease;
+        }
+
+        .scanner-result-item:hover {
+            background: rgba(0, 0, 0, 0.02);
+        }
+    </style>
     </style>
 </head>
 <body>

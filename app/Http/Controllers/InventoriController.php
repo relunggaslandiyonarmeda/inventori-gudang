@@ -504,56 +504,73 @@ public function barangKeluarScannerInput(Request $request)
     }
 
     public function barangKeluarQuickScan(Request $request)
-     {
-         if (!Auth::check()) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+      {
+          if (!Auth::check()) return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
 
-        $request->validate([
-            'items' => 'required|array',
-            'items.*.barcode' => 'required|string|exists:master_barang,barcode',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.keterangan' => 'nullable|string',
-        ]);
+         $request->validate([
+             'items' => 'required|array',
+             'items.*.barcode' => 'required|string|exists:master_barang,barcode',
+             'items.*.quantity' => 'required|integer|min:1',
+             'items.*.keterangan' => 'nullable|string',
+         ]);
 
-        try {
-            DB::transaction(function () use ($request) {
-                $currentTime = now();
+         $processedItems = [];
 
-                foreach ($request->items as $item) {
-                    $barang = MasterBarang::findOrFail($item['barcode']);
-                    if ($barang->stok < $item['quantity']) {
-                        throw new \Exception('Stok tidak cukup untuk ' . $barang->nama_barang . '! Stok tersedia: ' . $barang->stok);
-                    }
+         try {
+             DB::transaction(function () use ($request, &$processedItems) {
+                 $currentTime = now();
 
-                    $barang->stok = $barang->stok - $item['quantity'];
-                    $barang->updated_by = $this->getCurrentUserId();
-                    $barang->save();
+                 foreach ($request->items as $item) {
+                     $barang = MasterBarang::findOrFail($item['barcode']);
+                     if ($barang->stok < $item['quantity']) {
+                         throw new \Exception('Stok tidak cukup untuk ' . $barang->nama_barang . '! Stok tersedia: ' . $barang->stok);
+                     }
 
-                    $keterangan = $item['keterangan'] ?? null;
-                    if (empty($keterangan)) {
-                        $keterangan = 'Quick scan: ' . $barang->nama_barang . ' (' . $item['barcode'] . ') x' . $item['quantity'];
-                    }
+                     $stokSebelum = $barang->stok;
+                     $barang->stok = $barang->stok - $item['quantity'];
+                     $barang->updated_by = $this->getCurrentUserId();
+                     $barang->save();
 
-                    BarangKeluar::create([
-                        'barcode' => $item['barcode'],
-                        'jumlah_keluar' => $item['quantity'],
-                        'tanggal' => $currentTime->toDateString(),
-                        'keterangan' => $keterangan,
-                        'created_by' => $this->getCurrentUserId(),
-                    ]);
+                     $keterangan = $item['keterangan'] ?? null;
+                     if (empty($keterangan)) {
+                         $keterangan = 'Quick scan: ' . $barang->nama_barang . ' (' . $item['barcode'] . ') x' . $item['quantity'];
+                     }
 
-                    Log::info('Barang keluar via quick scan', [
-                        'barcode' => $item['barcode'],
-                        'nama_barang' => $barang->nama_barang,
-                        'jumlah_keluar' => $item['quantity'],
-                        'keterangan' => $keterangan,
-                        'tanggal' => $currentTime->toDateString(),
-                        'user' => Auth::user()->username
-                    ]);
-                }
-            });
+                     BarangKeluar::create([
+                         'barcode' => $item['barcode'],
+                         'jumlah_keluar' => $item['quantity'],
+                         'tanggal' => $currentTime->toDateString(),
+                         'keterangan' => $keterangan,
+                         'created_by' => $this->getCurrentUserId(),
+                     ]);
 
-            return response()->json(['success' => true, 'message' => 'Barang keluar berhasil dicatat!']);
-        } catch (\Exception $e) {
+                     $processedItems[] = [
+                         'barcode' => $item['barcode'],
+                         'nama_barang' => $barang->nama_barang,
+                         'jumlah_keluar' => $item['quantity'],
+                         'stok_sebelum' => $stokSebelum,
+                         'stok_sesudah' => $barang->stok,
+                         'keterangan' => $keterangan,
+                     ];
+
+                     Log::info('Barang keluar via quick scan', [
+                         'barcode' => $item['barcode'],
+                         'nama_barang' => $barang->nama_barang,
+                         'jumlah_keluar' => $item['quantity'],
+                         'keterangan' => $keterangan,
+                         'tanggal' => $currentTime->toDateString(),
+                         'user' => Auth::user()->username
+                     ]);
+                 }
+             });
+
+             return response()->json([
+                 'success' => true,
+                 'message' => 'Barang keluar berhasil dicatat!',
+                 'processed_items' => $processedItems,
+                 'total_items' => count($processedItems),
+             ]);
+         } catch (\Exception $e) {
             Log::error('Error quick scan barang keluar', [
                 'error' => $e->getMessage(),
                 'user' => Auth::user()->username

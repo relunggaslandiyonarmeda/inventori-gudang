@@ -248,6 +248,52 @@
             </div>
         </div>
     </div>
+    </div>
+</div>
+
+<!-- Scanner Result Popup -->
+<div class="scanner-popup-overlay" id="scannerPopupOverlay">
+    <div class="scanner-popup" id="scannerPopup">
+        <div class="scanner-popup-header">
+            <h5 class="mb-0" id="scannerPopupTitle">
+                <i class="bi bi-upc-scan me-2"></i>
+                <span id="scannerPopupTitleText">Memproses...</span>
+                <span class="spinner-border spinner-border-sm ms-2 d-none" id="scannerPopupSpinner" role="status" style="width: 1rem; height: 1rem;"></span>
+            </h5>
+        </div>
+        <div class="scanner-popup-body" id="scannerPopupBody">
+            <div class="scanner-popup-loading" id="scannerPopupLoading">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mb-0">Sedang memproses barang keluar...</p>
+                    <div class="progress mt-3" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" id="scannerPopupProgress" role="progressbar" style="width: 100%;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="scanner-popup-result d-none" id="scannerPopupResult">
+                <div class="scanner-popup-result-header mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted small">Total barang keluar: <strong id="scannerPopupTotal">0</strong></span>
+                        <span class="badge bg-success" id="scannerPopupBadge">
+                            <i class="bi bi-check-circle me-1"></i>Berhasil
+                        </span>
+                    </div>
+                </div>
+                <div class="scanner-result-list" id="scannerResultList"></div>
+            </div>
+        </div>
+        <div class="scanner-popup-footer">
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted" id="scannerPopupFooterText">Menunggu konfirmasi...</small>
+                <button class="btn btn-sm btn-outline-secondary" id="scannerPopupCloseBtn" onclick="closeScannerPopup()" style="display: none;">
+                    <i class="bi bi-x-lg"></i> Tutup
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 @endsection
@@ -397,57 +443,177 @@ function clearPendingItems() {
     updatePendingItemsDisplay();
 }
 
+function showScannerPopupLoading() {
+    const overlay = document.getElementById('scannerPopupOverlay');
+    const loading = document.getElementById('scannerPopupLoading');
+    const result = document.getElementById('scannerPopupResult');
+    const titleText = document.getElementById('scannerPopupTitleText');
+    const closeBtn = document.getElementById('scannerPopupCloseBtn');
+    const footerText = document.getElementById('scannerPopupFooterText');
+
+    titleText.textContent = 'Memproses...';
+    loading.classList.remove('d-none');
+    result.classList.add('d-none');
+    closeBtn.style.display = 'none';
+    footerText.textContent = 'Mohon tunggu, sedang menyimpan transaksi barang keluar...';
+    overlay.classList.add('show');
+}
+
+function showScannerPopupResult(processedItems) {
+    const overlay = document.getElementById('scannerPopupOverlay');
+    const loading = document.getElementById('scannerPopupLoading');
+    const result = document.getElementById('scannerPopupResult');
+    const titleText = document.getElementById('scannerPopupTitleText');
+    const spinner = document.getElementById('scannerPopupSpinner');
+    const closeBtn = document.getElementById('scannerPopupCloseBtn');
+    const footerText = document.getElementById('scannerPopupFooterText');
+    const resultList = document.getElementById('scannerResultList');
+    const totalEl = document.getElementById('scannerPopupTotal');
+    const badge = document.getElementById('scannerPopupBadge');
+
+    loading.classList.add('d-none');
+    titleText.textContent = 'Berhasil!';
+    spinner.classList.remove('d-none');
+    result.classList.remove('d-none');
+    badge.classList.remove('bg-danger');
+    badge.classList.add('bg-success');
+    badge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Berhasil';
+    closeBtn.style.display = 'inline-flex';
+    footerText.textContent = processedItems.length + ' item berhasil diproses';
+    totalEl.textContent = processedItems.length;
+
+    let html = '';
+    processedItems.forEach((item, index) => {
+        html += `
+            <div class="scanner-result-item d-flex justify-content-between align-items-center py-2 border-bottom border-light">
+                <div class="d-flex align-items-center gap-3">
+                    <span class="badge bg-primary rounded-circle">${index + 1}</span>
+                    <div>
+                        <strong>${item.nama_barang}</strong>
+                        <br>
+                        <small class="text-muted">
+                            <code>${item.barcode}</code> |
+                            ${item.jumlah_keluar} x keluar
+                        </small>
+                    </div>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted">Stok: ${item.stok_sebelum} → ${item.stok_sesudah}</small>
+                </div>
+            </div>
+        `;
+    });
+    resultList.innerHTML = html;
+
+    overlay.classList.add('show');
+
+    setTimeout(() => {
+        spinner.classList.add('d-none');
+    }, 500);
+
+    setTimeout(() => {
+        closeScannerPopup();
+    }, 3000);
+}
+
+function showScannerPopupError(message) {
+    const overlay = document.getElementById('scannerPopupOverlay');
+    const loading = document.getElementById('scannerPopupLoading');
+    const result = document.getElementById('scannerPopupResult');
+    const titleText = document.getElementById('scannerPopupTitleText');
+    const spinner = document.getElementById('scannerPopupSpinner');
+    const closeBtn = document.getElementById('scannerPopupCloseBtn');
+    const footerText = document.getElementById('scannerPopupFooterText');
+    const badge = document.getElementById('scannerPopupBadge');
+
+    loading.classList.add('d-none');
+    titleText.textContent = 'Gagal!';
+    spinner.classList.add('d-none');
+    result.classList.add('d-none');
+    badge.classList.remove('bg-success');
+    badge.classList.add('bg-danger');
+    badge.innerHTML = '<i class="bi bi-x-circle me-1"></i>Gagal';
+    closeBtn.style.display = 'inline-flex';
+    footerText.innerHTML = `<span class="text-danger">${message}</span>`;
+
+    overlay.classList.add('show');
+
+    setTimeout(() => {
+        closeScannerPopup();
+    }, 4000);
+}
+
+function closeScannerPopup() {
+    const overlay = document.getElementById('scannerPopupOverlay');
+    overlay.classList.remove('show');
+
+    setTimeout(() => {
+        pendingItems = {};
+        updatePendingItemsDisplay();
+        document.getElementById('global-keterangan').value = '';
+        const processBtn = document.getElementById('process-btn');
+        processBtn.innerHTML = '<i class="bi bi-box-arrow-up-right me-2"></i>Proses Semua Scan';
+        processBtn.disabled = false;
+        document.getElementById('scanner-input').focus();
+    }, 300);
+}
+
 function processAllScans() {
     if (Object.keys(pendingItems).length === 0) return;
-    
+
     // Check stock
     const insufficient = Object.values(pendingItems).filter(item => item.stok < item.quantity);
     if (insufficient.length > 0) {
-        if (!confirm('Beberapa barang stoknya tidak cukup:\n' + 
-            insufficient.map(i => `${i.nama_barang}: stok ${i.stok}, butuh ${i.quantity}`).join('\n') + 
+        if (!confirm('Beberapa barang stoknya tidak cukup:\n' +
+            insufficient.map(i => `${i.nama_barang}: stok ${i.stok}, butuh ${i.quantity}`).join('\n') +
             '\n\nLanjutkan?')) {
             return;
         }
     }
-    
+
     const processBtn = document.getElementById('process-btn');
+    const scanItems = Object.values(pendingItems).map(item => ({
+        barcode: item.barcode,
+        quantity: item.quantity,
+        keterangan: item.keterangan || document.getElementById('global-keterangan').value || ''
+    }));
+
+    // Show loading popup
+    showScannerPopupLoading();
     processBtn.disabled = true;
     processBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Menyimpan...';
-    
+
     fetch('{{ route("barang.keluar.quick.scan") }}', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': '{{ csrf_token() }}'
         },
-        body: JSON.stringify({
-            items: Object.values(pendingItems).map(item => ({
-                barcode: item.barcode,
-                quantity: item.quantity,
-                keterangan: item.keterangan || document.getElementById('global-keterangan').value || ''
-            }))
-        })
+        body: JSON.stringify({ items: scanItems })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            Object.values(pendingItems).forEach(item => {
-                addToHistory(item.barcode, item.nama_barang, true);
+            scanItems.forEach(item => {
+                const pendingItem = Object.values(pendingItems).find(p => p.barcode === item.barcode);
+                if (pendingItem) {
+                    addToHistory(item.barcode, pendingItem.nama_barang, true);
+                }
             });
+
+            showScannerPopupResult(data.processed_items || []);
             pendingItems = {};
             updatePendingItemsDisplay();
-            processBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Berhasil!';
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
+            document.getElementById('global-keterangan').value = '';
         } else {
-            processBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Proses Semua Scan';
+            showScannerPopupError(data.message || 'Terjadi kesalahan yang tidak diketahui');
+            processBtn.innerHTML = '<i class="bi bi-box-arrow-up-right me-2"></i>Proses Semua Scan';
             processBtn.disabled = false;
-            alert('Error: ' + data.message);
         }
     })
-    .catch(() => {
-        processBtn.innerHTML = '<i class="bi bi-check-circle me-2"></i>Proses Semua Scan';
+    .catch((err) => {
+        showScannerPopupError('Gagal terhubung ke server. Pastikan koneksi internet stabil.');
+        processBtn.innerHTML = '<i class="bi bi-box-arrow-up-right me-2"></i>Proses Semua Scan';
         processBtn.disabled = false;
     });
 }
