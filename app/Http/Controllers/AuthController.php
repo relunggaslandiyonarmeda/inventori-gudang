@@ -35,7 +35,7 @@ class AuthController extends Controller
 
         // ===== ADMIN LOGIN (hardcoded fallback for default admin) =====
         // Check if trying to login as admin with default password
-        $adminUser = User::where('username', 'admin')->first();
+        $adminUser = User::where('username', 'admin')->withTrashed()->first();
         if (!$adminUser && $credentials['username'] === 'admin' && $credentials['password'] === 'admin123') {
             // Create default admin user if not exists
             $adminUser = User::create([

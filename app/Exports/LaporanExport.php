@@ -42,7 +42,7 @@ class LaporanExport implements FromCollection, WithHeadings
                 });
             return $data;
         } elseif ($this->jenis === 'keluar') {
-            $data = BarangKeluar::with('masterBarang')
+            $data = BarangKeluar::with(['masterBarang', 'retur'])
                 ->whereMonth('tanggal', $this->bulan)
                 ->whereYear('tanggal', $this->tahun)
                 ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -54,7 +54,7 @@ class LaporanExport implements FromCollection, WithHeadings
                         'Tanggal' => $item->tanggal->format('d-m-Y'),
                         'Barcode' => $item->barcode,
                         'Nama Barang' => $item->masterBarang->nama_barang ?? '-',
-                        'Jumlah' => $item->jumlah_keluar,
+                        'Jumlah' => $item->jumlah_keluar - $item->retur->sum('jumlah_retur'),
                         'Keterangan' => $item->keterangan ?? '-',
                     ];
                 });
@@ -115,7 +115,7 @@ class LaporanExport implements FromCollection, WithHeadings
                     ];
                 });
 
-            $keluars = BarangKeluar::with('masterBarang')
+            $keluars = BarangKeluar::with(['masterBarang', 'retur'])
                 ->whereMonth('tanggal', $this->bulan)
                 ->whereYear('tanggal', $this->tahun)
                 ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -127,7 +127,7 @@ class LaporanExport implements FromCollection, WithHeadings
                         'Jenis' => 'KELUAR',
                         'Barcode' => $item->barcode,
                         'Nama Barang' => $item->masterBarang->nama_barang ?? '-',
-                        'Jumlah' => $item->jumlah_keluar,
+                        'Jumlah' => $item->jumlah_keluar - $item->retur->sum('jumlah_retur'),
                         'Keterangan' => $item->keterangan ?? '-',
                     ];
                 });

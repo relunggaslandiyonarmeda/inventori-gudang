@@ -805,14 +805,14 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangKeluars = BarangKeluar::with(['masterBarang', 'createdBy'])
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'createdBy', 'retur'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        $totalKeluar = $barangKeluars->sum('jumlah_keluar');
+        $totalKeluar = $barangKeluars->sum('effective_jumlah_keluar');
 
         return view('laporan.keluar', compact('barangKeluars', 'bulan', 'tahun', 'totalKeluar'));
     }
@@ -823,14 +823,14 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangKeluars = BarangKeluar::with(['masterBarang', 'createdBy'])
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'createdBy', 'retur'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        $totalKeluar = $barangKeluars->sum('jumlah_keluar');
+        $totalKeluar = $barangKeluars->sum('effective_jumlah_keluar');
 
         $pdf = Pdf::loadView('laporan.pdf.keluar', compact('barangKeluars', 'bulan', 'tahun', 'totalKeluar'));
         return $pdf->download('laporan_barang_keluar_' . $bulan . '_' . $tahun . '.pdf');
@@ -851,7 +851,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
         $bulan = $request->bulan ?? date('m');
         $tahun = $request->tahun ?? date('Y');
 
-        $barangKeluars = BarangKeluar::with('masterBarang')
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'retur'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -875,12 +875,12 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
                 $item->tanggal->format('d-m-Y'),
                 $item->barcode,
                 $item->masterBarang->nama_barang ?? '-',
-                $item->jumlah_keluar,
+                $item->jumlah_keluar - $item->retur->sum('jumlah_retur'),
                 $item->keterangan ?? '-'
             ]);
         }
         
-        fputcsv($output, ['', '', '', 'TOTAL', $barangKeluars->sum('jumlah_keluar'), '']);
+        fputcsv($output, ['', '', '', 'TOTAL', $barangKeluars->sum('effective_jumlah_keluar'), '']);
         
         fclose($output);
         exit;
@@ -899,7 +899,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        $barangKeluars = BarangKeluar::with('masterBarang')
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'retur'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -907,7 +907,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             ->get();
 
         $totalMasuk = $barangMasuks->sum('jumlah_masuk');
-        $totalKeluar = $barangKeluars->sum('jumlah_keluar');
+        $totalKeluar = $barangKeluars->sum('effective_jumlah_keluar');
 
         return view('laporan.gabungan', compact('barangMasuks', 'barangKeluars', 'bulan', 'tahun', 'totalMasuk', 'totalKeluar'));
     }
@@ -924,7 +924,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        $barangKeluars = BarangKeluar::with('masterBarang')
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'retur'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -932,7 +932,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             ->get();
 
         $totalMasuk = $barangMasuks->sum('jumlah_masuk');
-        $totalKeluar = $barangKeluars->sum('jumlah_keluar');
+        $totalKeluar = $barangKeluars->sum('effective_jumlah_keluar');
 
         $pdf = Pdf::loadView('laporan.pdf.gabungan', compact('barangMasuks', 'barangKeluars', 'bulan', 'tahun', 'totalMasuk', 'totalKeluar'));
         return $pdf->download('laporan_transaksi_' . $bulan . '_' . $tahun . '.pdf');
@@ -959,7 +959,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        $barangKeluars = BarangKeluar::with('masterBarang')
+        $barangKeluars = BarangKeluar::with(['masterBarang', 'retur'])
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->whereRaw('(SELECT COALESCE(SUM(jumlah_retur), 0) FROM barang_retur WHERE barang_retur.barang_keluar_id = barang_keluar.id) < barang_keluar.jumlah_keluar')
@@ -996,7 +996,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
                 'KELUAR',
                 $item->barcode,
                 $item->masterBarang->nama_barang ?? '-',
-                $item->jumlah_keluar,
+                $item->jumlah_keluar - $item->retur->sum('jumlah_retur'),
                 $item->keterangan ?? '-'
             ]);
         }
@@ -1118,7 +1118,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
         foreach ($barangs as $items) {
             $totalStok += $items->sum('stok');
         }
-        fputcsv($output, ['', '', 'TOTAL BARANG', $no - 1, $totalStok]);
+        fputcsv($output, ['', '', '', 'TOTAL', $totalStok]);
         
         fclose($output);
         exit;
@@ -1919,7 +1919,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
     {
 
         $userId = Auth::id();
-        $isAdmin = ($userId === 'admin');
+        $isAdmin = Auth::user()?->role === 'admin';
         
         // For admin (hardcoded), return basic info
         if ($isAdmin) {
@@ -1939,7 +1939,7 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
         $userId = Auth::id();
         
         // Admin cannot update profile photo (hardcoded account)
-        if ($userId === 'admin') {
+        if (Auth::user()?->role === 'admin') {
             return back()->with('error', 'Akun admin tidak dapat mengubah foto profil!');
         }
 

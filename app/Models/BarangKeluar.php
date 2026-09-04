@@ -35,6 +35,11 @@ class BarangKeluar extends Model
         return $this->hasMany(BarangRetur::class, 'barang_keluar_id');
     }
 
+    public function getEffectiveJumlahKeluarAttribute(): int
+    {
+        return $this->jumlah_keluar - $this->retur->sum('jumlah_retur');
+    }
+
     /**
      * Get the user who created this record
      */

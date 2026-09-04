@@ -74,7 +74,7 @@
                 <td style="text-align: center;">KELUAR</td>
                 <td>{{ $item->barcode }}</td>
                 <td>{{ $item->masterBarang->nama_barang ?? '-' }}</td>
-                <td style="text-align: center;">{{ $item->jumlah_keluar }}</td>
+                <td style="text-align: center;">{{ $item->effective_jumlah_keluar }}</td>
                 <td>{{ $item->keterangan ?? '-' }}</td>
             </tr>
             @endforeach

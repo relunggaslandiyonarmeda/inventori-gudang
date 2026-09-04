@@ -213,7 +213,7 @@
                         <td class="text-center">
                             <span class="badge bg-danger-subtle text-danger px-3 py-2">
                                 <i class="bi bi-dash me-1"></i>
-                                {{ number_format($item->jumlah_keluar) }}
+                                {{ number_format($item->effective_jumlah_keluar) }}
                             </span>
                         </td>
                         <td>
