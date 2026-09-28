@@ -1350,6 +1350,15 @@
             transform: translateY(-4px);
         }
         
+        /* ========================================
+           ENTER KEY SUBMIT HANDLER
+        ======================================== */
+        .enter-submit-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        
         /* Card enhancements */
         .card-header {
             background: transparent;
@@ -1922,5 +1931,67 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
     
     @yield('scripts')
+
+    <!-- Global Enter Key Submit Handler -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Handle Enter key to submit forms
+            document.addEventListener('keydown', function(e) {
+                // Only trigger on Enter key
+                if (e.key !== 'Enter') return;
+
+                const target = e.target;
+                const tagName = target.tagName.toLowerCase();
+                const type = target.type?.toLowerCase();
+
+                // Don't submit if:
+                // - In a textarea (Enter should create new line)
+                // - In a select dropdown (Enter should select option)
+                // - In a file input
+                // - In a search input with dropdown open (global search)
+                // - Shift+Enter (allow new line in textareas)
+                // - Ctrl/Cmd+Enter (often used for new line)
+                // - Inside a modal that's not a form submit
+                if (
+                    tagName === 'textarea' ||
+                    tagName === 'select' ||
+                    type === 'file' ||
+                    (target.id === 'globalSearchInput' && document.getElementById('globalSearchDropdown')?.classList.contains('show')) ||
+                    e.shiftKey ||
+                    e.ctrlKey ||
+                    e.metaKey
+                ) {
+                    return;
+                }
+
+                // Find the nearest form
+                const form = target.closest('form');
+                if (!form) return;
+
+                // Check if form has a submit button
+                const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+                if (!submitBtn) return;
+
+                // Check if the input is part of a search/filter form (auto-submit on Enter is OK for those)
+                // For regular forms, we'll just click the submit button
+                e.preventDefault();
+                submitBtn.click();
+            });
+
+            // Add visual hint for Enter key support
+            const forms = document.querySelectorAll('form');
+            forms.forEach(function(form) {
+                const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+                if (submitBtn && !form.hasAttribute('data-enter-hint-added')) {
+                    form.setAttribute('data-enter-hint-added', 'true');
+                    // Optional: Add a small hint (uncomment if desired)
+                    // const hint = document.createElement('small');
+                    // hint.className = 'enter-submit-hint d-block mt-1';
+                    // hint.textContent = 'Tekan Enter untuk menyimpan';
+                    // submitBtn.parentNode.insertBefore(hint, submitBtn.nextSibling);
+                }
+            });
+        });
+    </script>
 </body>
 </html>
