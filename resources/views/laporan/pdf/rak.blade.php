@@ -23,48 +23,34 @@
     <div class="header">
         <p class="company">PT. UNION SAMPOERNA TRIPUTRA PERSADA</p>
         <h1>LAPORAN BARANG PER RAK</h1>
-        <p>Gudang IT - {{ $rak !== 'all' ? 'Rak ' . $rak : 'Semua Rak' }} ({{ number_format($totalBarang, 0, ',', '.') }} Barang / {{ number_format($totalStok, 0, ',', '.') }} Unit)</p>
+        <p>Gudang IT - {{ $rak !== 'all' ? 'Rak ' . $rak : 'Semua Rak' }}</p>
     </div>
 
     <table>
         <thead>
             <tr>
                 <th style="width: 30px;">No</th>
+                <th style="width: 40px;">Rak</th>
                 <th style="width: 100px;">Barcode</th>
                 <th>Nama Barang</th>
                 <th style="width: 60px; text-align: center;">Stok</th>
             </tr>
         </thead>
         <tbody>
-            @php
-                $no = 1;
-                $rakKeys = $barangs->keys();
-            @endphp
-            @foreach($rakKeys as $idx => $rakName)
-            @php $items = $barangs[$rakName]; @endphp
-            <tr class="total">
-                <td colspan="4" style="text-align: right;">RAK {{ $rakName }} ({{ $items->count() }} Barang)</td>
-            </tr>
+            @php $no = 1; @endphp
+            @foreach($barangs as $rakName => $items)
             @foreach($items as $item)
             <tr>
                 <td>{{ $no++ }}</td>
+                <td>{{ $rakName }}</td>
                 <td>{{ $item->barcode }}</td>
                 <td>{{ $item->nama_barang }}</td>
                 <td style="text-align: center;">{{ number_format($item->stok, 0, ',', '.') }}</td>
             </tr>
             @endforeach
-            <tr class="total">
-                <td colspan="3" style="text-align: right;">TOTAL STOK RAK {{ $rakName }}</td>
-                <td style="text-align: center;">{{ number_format($items->sum('stok'), 0, ',', '.') }}</td>
-            </tr>
             @endforeach
-            @if($barangs->isEmpty())
-            <tr>
-                <td colspan="4" style="text-align: center;">Tidak ada data barang</td>
-            </tr>
-            @endif
             <tr class="total">
-                <td colspan="3" style="text-align: right;">TOTAL</td>
+                <td colspan="4" style="text-align: right;">TOTAL</td>
                 <td style="text-align: center;">{{ number_format($totalStok, 0, ',', '.') }}</td>
             </tr>
         </tbody>
