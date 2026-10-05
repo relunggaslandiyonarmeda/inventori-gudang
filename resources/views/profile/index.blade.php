@@ -66,7 +66,7 @@
                         <div class="row mb-4">
                             <div class="col-md-4 text-center">
                                 @if($user->profile_photo)
-                                    <img src="{{ asset('storage/profile_photos/' . $user->profile_photo) }}" 
+                                    <img src="{{ storage_asset('profile_photos/' . $user->profile_photo) }}" 
                                          alt="Foto Profil" 
                                          class="rounded-circle mb-3"
                                          style="width: 150px; height: 150px; object-fit: cover;">

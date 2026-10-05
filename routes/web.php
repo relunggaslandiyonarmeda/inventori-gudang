@@ -15,6 +15,11 @@ Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
+// Fallback penyaji file upload (dipakai bila symlink public/storage tidak tersedia)
+Route::get('/storage-file/{path}', [InventoriController::class, 'storageFile'])
+    ->where('path', '.*')
+    ->name('storage.file');
+
 // Protected Routes - require authentication
 Route::middleware(['admin.auth'])->group(function () {
     // Dashboard

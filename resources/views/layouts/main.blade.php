@@ -1597,7 +1597,7 @@
                 @endif
                 <a href="{{ route('profile') }}" class="user-avatar text-decoration-none">
                     @if(auth()->user()->profile_photo)
-                    <img src="{{ asset('storage/profile_photos/' . auth()->user()->profile_photo) }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
+                    <img src="{{ storage_asset('profile_photos/' . auth()->user()->profile_photo) }}" alt="Profile" class="rounded-circle" style="width: 32px; height: 32px; object-fit: cover;">
                     @else
                     <i class="bi bi-person"></i>
                     @endif

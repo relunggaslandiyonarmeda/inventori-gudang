@@ -141,7 +141,7 @@
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                 </div>
                                 <div class="modal-body text-center">
-                                    <img src="{{ asset('storage/' . $br->foto) }}" alt="Foto {{ $br->nomor }}" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;">
+                                    <img src="{{ storage_asset($br->foto) }}" alt="Foto {{ $br->nomor }}" class="img-fluid rounded" style="max-height: 400px; object-fit: contain;">
                                 </div>
                             </div>
                         </div>

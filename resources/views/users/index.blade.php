@@ -80,7 +80,7 @@
                                     <td>{{ $users->firstItem() + $key }}</td>
                                     <td>
                                         @if($user->profile_photo)
-                                        <img src="{{ asset('storage/profile_photos/' . $user->profile_photo) }}" 
+                                        <img src="{{ storage_asset('profile_photos/' . $user->profile_photo) }}" 
                                              alt="Foto" class="rounded-circle" 
                                              style="width: 40px; height: 40px; object-fit: cover;">
                                         @else

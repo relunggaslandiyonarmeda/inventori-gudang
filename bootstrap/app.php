@@ -6,6 +6,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use App\Http\Middleware\AdminAuthenticate;
 use App\Http\Middleware\AdminRole;
 
+require_once __DIR__.'/../app/Support/helpers.php';
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

@@ -29,6 +29,23 @@ class InventoriController extends Controller
         return Auth::id();
     }
 
+    // ========== SERVE UPLOADED FILES ==========
+    public function storageFile(string $path)
+    {
+        $basePath = realpath(storage_path('app/public'));
+        $targetPath = realpath(storage_path('app/public/' . str_replace('\\', '/', $path)));
+
+        if ($basePath === false || $targetPath === false || ! is_file($targetPath)) {
+            abort(404);
+        }
+
+        if (! str_starts_with($targetPath, $basePath . DIRECTORY_SEPARATOR)) {
+            abort(404);
+        }
+
+        return response()->file($targetPath);
+    }
+
     // ========== DASHBOARD ==========
     public function dashboard()
     {
@@ -1577,6 +1594,8 @@ $retur = BarangRetur::with(['masterBarang', 'createdBy'])->withTrashed()
             env('MYSQLDUMP_PATH'),
             'C:\\xampp\\mysql\\bin\\mysqldump.exe',
             'C:\\xampp\\mariadb\\bin\\mysqldump.exe',
+            'C:\\xampp\\MySQL8\\bin\\mysqldump.exe',
+            'C:\\Program Files\\MariaDB 10.11\\bin\\mysqldump.exe',
             'mysqldump',
         ], 'mysqldump');
 
